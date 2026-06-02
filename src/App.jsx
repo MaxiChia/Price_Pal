@@ -1310,7 +1310,7 @@ If you cannot read the receipt clearly, return:
 
             <div className="log-tabs">
               <button className={`log-tab ${logMode === "manual" ? "active" : ""}`} onClick={() => setLogMode("manual")}>Enter Manually</button>
-              <button className={`log-tab ${logMode === "scan" ? "active" : ""}`} onClick={() => setLogMode("scan")}>Scan Receipt</button>
+              <button className={`log-tab ${logMode === "scan" ? "active" : ""}`} onClick={() => { setLogMode("scan"); setScanLoading(false); setScanError(null); }}>Scan Receipt</button>
             </div>
 
             {/* SCAN MODE */}
@@ -1339,7 +1339,7 @@ If you cannot read the receipt clearly, return:
                   </button>
                 </div>
 
-                {scanLoading && (
+                {scanLoading && scanPreviewUrl && (
                   <div style={{ background: "white", border: "1.5px solid var(--border)", borderRadius: 16, padding: "24px 20px", textAlign: "center", boxShadow: "var(--shadow)" }}>
                     <div style={{ fontSize: 24, marginBottom: 12 }}>🔍</div>
                     <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text)", marginBottom: 6 }}>Reading your receipt...</div>
