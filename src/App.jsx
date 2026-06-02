@@ -742,11 +742,33 @@ export default function PriceCheck() {
   const [authMode, setAuthMode] = useState("signup");
   const [authEmail, setAuthEmail] = useState("");
   const [authPass, setAuthPass] = useState("");
+  const [resetConfirm, setResetConfirm] = useState(null); // null | "month" | "all" | "full"
 
-  const todayIndex = new Date().getDate() % 30;
+  const today = new Date();
+  const [viewMonth, setViewMonth] = useState(today.getMonth());
+  const [viewYear, setViewYear] = useState(today.getFullYear());
+
+  const todayIndex = today.getDate() % 30;
   const dailyFact = DAILY_FACTS[todayIndex];
 
-  const totalSpent = logs.reduce((s, l) => s + l.price, 0);
+  const currentMonthStr = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,"0")}`;
+  const viewMonthStr = `${viewYear}-${String(viewMonth+1).padStart(2,"0")}`;
+  const MONTH_NAMES = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+
+  // Filter logs for current month (home screen always shows current month)
+  const thisMonthLogs = logs.filter(l => l.date && l.date.startsWith(currentMonthStr));
+  // Filter logs for the viewed month (portfolio)
+  const viewMonthLogs = logs.filter(l => l.date && l.date.startsWith(viewMonthStr));
+  // Last month for comparison
+  const lastMonthDate = new Date(today.getFullYear(), today.getMonth()-1, 1);
+  const lastMonthStr = `${lastMonthDate.getFullYear()}-${String(lastMonthDate.getMonth()+1).padStart(2,"0")}`;
+  const lastMonthLogs = logs.filter(l => l.date && l.date.startsWith(lastMonthStr));
+
+  const totalSpent = thisMonthLogs.reduce((s, l) => s + l.price, 0);
+  const viewMonthTotal = viewMonthLogs.reduce((s, l) => s + l.price, 0);
+  const lastMonthTotal = lastMonthLogs.reduce((s, l) => s + l.price, 0);
+  const momChange = lastMonthTotal > 0 ? Math.round(((viewMonthTotal - lastMonthTotal) / lastMonthTotal) * 100) : 0;
+
   const budgetNum = parseFloat(budget) || 2000;
   const budgetPct = getBudgetPct(totalSpent, budgetNum);
   const budgetColor = getBudgetColor(budgetPct);
@@ -763,10 +785,15 @@ export default function PriceCheck() {
     "You're in the red. Time to stop spending.",
   ][getMoodIndex(budgetPct)];
 
-  // Category spending
+  // Category spending — current month only for home/budget
   const catSpending = {};
-  logs.forEach((l) => {
+  thisMonthLogs.forEach((l) => {
     catSpending[l.category] = (catSpending[l.category] || 0) + l.price;
+  });
+  // Category spending for viewed month (portfolio)
+  const viewCatSpending = {};
+  viewMonthLogs.forEach((l) => {
+    viewCatSpending[l.category] = (viewCatSpending[l.category] || 0) + l.price;
   });
 
   const catBudgets = {
@@ -1047,27 +1074,104 @@ If you cannot read the receipt clearly, return:
       <div className="app">
         {/* PROFILE MODAL */}
         {showProfile && (
-          <div className="modal-overlay" onClick={() => setShowProfile(false)}>
-            <div className="modal-sheet" onClick={e => e.stopPropagation()}>
+          <div className="modal-overlay" onClick={() => { setShowProfile(false); setResetConfirm(null); }}>
+            <div className="modal-sheet" onClick={e => e.stopPropagation()} style={{ maxHeight: "85vh", overflowY: "auto" }}>
               <div className="modal-handle" />
               <div className="modal-title">Your Profile</div>
               <div className="profile-stat">
                 <div className="profile-stat-val">{logs.length}</div>
-                <div className="profile-stat-label">Total Purchases Logged</div>
+                <div className="profile-stat-label">Total Purchases Logged (All Time)</div>
               </div>
               <div className="profile-row">
-                <span className="profile-row-label">Report Cards Completed</span>
-                <span className="profile-row-val">2</span>
+                <span className="profile-row-label">This Month</span>
+                <span className="profile-row-val">{thisMonthLogs.length} logs · ${totalSpent.toFixed(2)}</span>
               </div>
               <div className="profile-row">
                 <span className="profile-row-label">Member Since</span>
-                <span className="profile-row-val">May 2026</span>
+                <span className="profile-row-val">Jun 2026</span>
               </div>
               <div className="profile-row">
                 <span className="profile-row-label">Companion</span>
-                <span className="profile-row-val">{companion?.name || "—"}</span>
+                <span className="profile-row-val">{companionCustom.name || companion?.name || "—"}</span>
               </div>
-              <button className="btn-secondary" style={{ margin: "20px 0 0" }} onClick={() => { setPhase("splash"); setShowProfile(false); }}>Log Out</button>
+              <div className="profile-row">
+                <span className="profile-row-label">Monthly Budget</span>
+                <span className="profile-row-val">${budgetNum.toFixed(0)}</span>
+              </div>
+
+              {/* RESET SECTION */}
+              <div style={{ margin: "20px 20px 0", padding: "16px", background: "var(--bg2)", borderRadius: 14, border: "1.5px solid var(--border)" }}>
+                <div style={{ fontSize: 11, fontWeight: 800, color: "var(--text3)", letterSpacing: "0.6px", marginBottom: 12 }}>DATA MANAGEMENT</div>
+
+                {!resetConfirm && (
+                  <>
+                    <button onClick={() => setResetConfirm("month")} style={{ width: "100%", background: "white", border: "1.5px solid var(--border2)", borderRadius: 12, padding: "12px 14px", marginBottom: 8, display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer" }}>
+                      <div style={{ textAlign: "left" }}>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text)" }}>Clear This Month</div>
+                        <div style={{ fontSize: 11, color: "var(--text3)", marginTop: 2 }}>Remove {MONTH_NAMES[today.getMonth()]} logs only</div>
+                      </div>
+                      <span style={{ fontSize: 16, color: "var(--text3)" }}>›</span>
+                    </button>
+                    <button onClick={() => setResetConfirm("all")} style={{ width: "100%", background: "white", border: "1.5px solid var(--border2)", borderRadius: 12, padding: "12px 14px", marginBottom: 8, display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer" }}>
+                      <div style={{ textAlign: "left" }}>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: "var(--orange)" }}>Clear All Logs</div>
+                        <div style={{ fontSize: 11, color: "var(--text3)", marginTop: 2 }}>Remove all purchases, keep settings</div>
+                      </div>
+                      <span style={{ fontSize: 16, color: "var(--text3)" }}>›</span>
+                    </button>
+                    <button onClick={() => setResetConfirm("full")} style={{ width: "100%", background: "white", border: "1.5px solid var(--red-mid)", borderRadius: 12, padding: "12px 14px", display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer" }}>
+                      <div style={{ textAlign: "left" }}>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: "var(--red)" }}>Full Reset</div>
+                        <div style={{ fontSize: 11, color: "var(--text3)", marginTop: 2 }}>Wipe everything, restart onboarding</div>
+                      </div>
+                      <span style={{ fontSize: 16, color: "var(--red)" }}>›</span>
+                    </button>
+                  </>
+                )}
+
+                {resetConfirm && (
+                  <div style={{ textAlign: "center" }}>
+                    <div style={{ fontSize: 24, marginBottom: 10 }}>
+                      {resetConfirm === "month" ? "🗓️" : resetConfirm === "all" ? "🗑️" : "⚠️"}
+                    </div>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text)", marginBottom: 6 }}>
+                      {resetConfirm === "month" && `Clear ${MONTH_NAMES[today.getMonth()]} logs?`}
+                      {resetConfirm === "all" && "Clear all purchase logs?"}
+                      {resetConfirm === "full" && "Full reset? This cannot be undone."}
+                    </div>
+                    <div style={{ fontSize: 12, color: "var(--text3)", marginBottom: 16, lineHeight: 1.5 }}>
+                      {resetConfirm === "month" && `${thisMonthLogs.length} logs from this month will be removed.`}
+                      {resetConfirm === "all" && `All ${logs.length} logs will be deleted. Your budget and companion stay.`}
+                      {resetConfirm === "full" && "All data, settings and companion will be wiped. You will start fresh."}
+                    </div>
+                    <div style={{ display: "flex", gap: 8 }}>
+                      <button onClick={() => setResetConfirm(null)} style={{ flex: 1, background: "white", border: "1.5px solid var(--border2)", borderRadius: 12, padding: "12px", fontSize: 13, fontWeight: 700, color: "var(--text2)", cursor: "pointer" }}>Cancel</button>
+                      <button onClick={() => {
+                        if (resetConfirm === "month") {
+                          setLogs(prev => prev.filter(l => !l.date.startsWith(currentMonthStr)));
+                        } else if (resetConfirm === "all") {
+                          setLogs([]);
+                        } else if (resetConfirm === "full") {
+                          setLogs([]);
+                          setBudget("");
+                          setSelectedCompanion(null);
+                          setCompanionCustom({});
+                          setShowProfile(false);
+                          setResetConfirm(null);
+                          setPhase("splash");
+                          return;
+                        }
+                        setResetConfirm(null);
+                        setShowProfile(false);
+                      }} style={{ flex: 1, background: resetConfirm === "full" ? "var(--red)" : "var(--orange-mid)", border: "none", borderRadius: 12, padding: "12px", fontSize: 13, fontWeight: 800, color: resetConfirm === "full" ? "white" : "var(--text)", cursor: "pointer" }}>
+                        {resetConfirm === "full" ? "Yes, Reset" : "Confirm"}
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <button className="btn-secondary" style={{ margin: "16px 20px 0" }} onClick={() => { setPhase("splash"); setShowProfile(false); setResetConfirm(null); }}>Log Out</button>
             </div>
           </div>
         )}
@@ -1161,7 +1265,7 @@ If you cannot read the receipt clearly, return:
                 <div className="budget-fill" style={{ width: `${100 - budgetPct}%`, background: budgetColor }} />
               </div>
               <div style={{ textAlign: "center", marginTop: 6, fontSize: 11, color: "var(--text3)", fontWeight: 700 }}>
-                {budgetPct}% remaining
+                {budgetPct}% remaining · {MONTH_NAMES[today.getMonth()]} {today.getFullYear()}
               </div>
             </div>
 
@@ -1171,8 +1275,11 @@ If you cannot read the receipt clearly, return:
             </div>
 
             <div style={{ padding: "0 20px 16px" }}>
-              <div style={{ fontSize: 11, color: "var(--text3)", fontWeight: 800, letterSpacing: "0.6px", marginBottom: 10 }}>RECENT LOGS</div>
-              {logs.slice(0, 4).map((log) => {
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+                <div style={{ fontSize: 11, color: "var(--text3)", fontWeight: 800, letterSpacing: "0.6px" }}>RECENT LOGS</div>
+                <div style={{ fontSize: 11, color: "var(--primary)", fontWeight: 700 }}>{thisMonthLogs.length} this month</div>
+              </div>
+              {logs.slice(0, 5).map((log) => {
                 const cat = CATEGORIES.find((c) => c.id === log.category);
                 return (
                   <div key={log.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 0", borderBottom: "1px solid var(--border)" }}>
@@ -1373,40 +1480,58 @@ If you cannot read the receipt clearly, return:
         {tab === "portfolio" && (
           <div className="screen">
             <div className="month-selector">
-              <div className="month-arrow">‹</div>
-              <div className="month-label">May 2026</div>
-              <div className="month-arrow">›</div>
+              <div className="month-arrow" onClick={() => {
+                const d = new Date(viewYear, viewMonth - 1, 1);
+                setViewMonth(d.getMonth());
+                setViewYear(d.getFullYear());
+              }}>‹</div>
+              <div className="month-label">{MONTH_NAMES[viewMonth]} {viewYear}</div>
+              <div className="month-arrow" onClick={() => {
+                const d = new Date(viewYear, viewMonth + 1, 1);
+                if (d <= today) { setViewMonth(d.getMonth()); setViewYear(d.getFullYear()); }
+              }} style={{ opacity: (viewMonth === today.getMonth() && viewYear === today.getFullYear()) ? 0.3 : 1 }}>›</div>
             </div>
 
+            {viewMonthLogs.length === 0 ? (
+              <div style={{ textAlign: "center", padding: "40px 20px", color: "var(--text3)" }}>
+                <div style={{ fontSize: 40, marginBottom: 12 }}>📭</div>
+                <div style={{ fontSize: 15, fontWeight: 700, color: "var(--text)", marginBottom: 6 }}>No logs for {MONTH_NAMES[viewMonth]}</div>
+                <div style={{ fontSize: 13 }}>Start logging purchases to see your spending breakdown here.</div>
+              </div>
+            ) : (<>
             <div className="stat-pills">
               <div className="stat-pill">
-                <div className="stat-pill-val">${totalSpent.toFixed(0)}</div>
+                <div className="stat-pill-val">${viewMonthTotal.toFixed(0)}</div>
                 <div className="stat-pill-label">TOTAL LOGGED</div>
               </div>
               <div className="stat-pill">
-                <div className="stat-pill-val">Groceries</div>
+                <div className="stat-pill-val" style={{ fontSize: 13 }}>
+                  {(() => { const top = CATEGORIES.find(c => viewCatSpending[c.id] === Math.max(...Object.values(viewCatSpending))); return top ? `${top.icon} ${top.label}` : "—"; })()}
+                </div>
                 <div className="stat-pill-label">BIGGEST CAT</div>
               </div>
               <div className="stat-pill">
-                <div className="stat-pill-val" style={{ color: "var(--red)" }}>+12%</div>
+                <div className="stat-pill-val" style={{ color: momChange >= 0 ? "var(--red)" : "var(--green)" }}>
+                  {momChange >= 0 ? "+" : ""}{momChange}%
+                </div>
                 <div className="stat-pill-label">VS LAST MONTH</div>
               </div>
             </div>
 
             <div className="donut-wrap">
               <DonutChart
-                data={CATEGORIES.filter(c => catSpending[c.id]).map(c => ({ ...c, amount: catSpending[c.id] || 0 }))}
-                total={totalSpent}
+                data={CATEGORIES.filter(c => viewCatSpending[c.id]).map(c => ({ ...c, amount: viewCatSpending[c.id] || 0 }))}
+                total={viewMonthTotal}
               />
               <div className="donut-center">
-                <div className="donut-total">${totalSpent.toFixed(0)}</div>
-                <div className="donut-label">THIS MONTH</div>
+                <div className="donut-total">${viewMonthTotal.toFixed(0)}</div>
+                <div className="donut-label">{MONTH_NAMES[viewMonth].toUpperCase()}</div>
               </div>
             </div>
 
             <div className="cat-breakdown">
-              {CATEGORIES.filter(c => catSpending[c.id]).map((cat) => {
-                const spent = catSpending[cat.id] || 0;
+              {CATEGORIES.filter(c => viewCatSpending[c.id]).map((cat) => {
+                const spent = viewCatSpending[cat.id] || 0;
                 const limit = catBudgets[cat.id] || budgetNum * 0.1;
                 const pct = Math.round((spent / limit) * 100);
                 const status = pct < 80 ? "on-track" : pct < 100 ? "watch-out" : "overspending";
@@ -1431,6 +1556,7 @@ If you cannot read the receipt clearly, return:
                 );
               })}
             </div>
+            </>)}
 
             <div style={{ padding: "8px 20px 0" }}>
               <div style={{ fontFamily: "'Fredoka One'", fontSize: 17, color: "var(--text)", marginBottom: 12 }}>Where your money quietly goes</div>
