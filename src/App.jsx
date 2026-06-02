@@ -60,36 +60,36 @@ const CATEGORIES = [
 ];
 
 const DAILY_FACTS = [
-  "Inflation erodes your purchasing power by about 2–3% every year.",
-  "The average household spends 13% of income on food.",
-  "Transport costs are the second largest expense for most families.",
-  "Buying in bulk saves money only when you actually use everything.",
-  "Price anchoring tricks you into thinking a sale is better than it is.",
-  "Emergency funds should cover 3–6 months of essential expenses.",
-  "The latte factor: small daily purchases add up to thousands annually.",
-  "Comparing unit prices, not shelf prices, is the smarter grocery habit.",
-  "Your personal inflation rate often differs significantly from official CPI.",
-  "Subscription creep costs the average person $200+ per month unnoticed.",
-  "Timing purchases to end-of-month sales cycles can save 15–30%.",
-  "Loyalty programs work best when you were buying the item anyway.",
-  "Shrinkflation: same price, less product — watch net weight, not price.",
-  "The 24-hour rule before any non-essential purchase reduces regret buys by 70%.",
-  "Eating before grocery shopping reduces impulse food spending.",
-  "Price memory fades fast — tracking is the only way to spot real increases.",
-  "Healthcare costs rise faster than general inflation in most countries.",
-  "Opportunity cost means every dollar spent is a dollar not invested.",
-  "The average car sits unused 95% of the time.",
-  "Utility bills often have off-peak pricing most people never use.",
-  "Paying annually instead of monthly saves 10–20% on most subscriptions.",
-  "Brand loyalty is often just familiarity, not actual quality difference.",
-  "The mental accounting trap makes you treat windfalls differently than income.",
-  "Loss aversion means losses hurt twice as much as equivalent gains feel good.",
-  "Your highest-cost day of the week is almost certainly a weekend.",
-  "Preparing a shopping list cuts grocery spending by an average of 20%.",
-  "Market timing fails most investors — consistency wins over cleverness.",
-  "Housing, food, and transport typically consume 60–70% of most budgets.",
-  "Compound interest works for savings the same way compound debt destroys.",
-  "The best financial decision is usually the boring one done consistently.",
+  "Inflation erodes your purchasing power quietly — that $5.50 chicken rice was $4.50 just two years ago.",
+  "Hawker food prices have risen 20–30% in Singapore over the past 5 years.",
+  "Your EZ-Link tap feels invisible — but transport can easily hit $100+ a month without noticing.",
+  "Subscription creep: Netflix, Spotify, iCloud, Disney+ add up to $60–$80/month for most students.",
+  "Buying bubble tea daily at $6 costs $180/month — that's a textbook or a flight to KL.",
+  "Comparing price per unit, not shelf price, is the smarter FairPrice habit.",
+  "Your personal inflation rate is almost always higher than Singapore's official CPI figure.",
+  "Price memory fades fast — logging is the only way to know if your kopi stall raised prices.",
+  "The 24-hour rule: wait a day before any non-essential purchase. It cuts regret buys by 70%.",
+  "Eating before grocery shopping reduces impulse food spending significantly.",
+  "Shrinkflation is real: same packaging, less product — always check the net weight.",
+  "Opportunity cost: every $10 spent is $10 not compounding in savings.",
+  "Emergency funds should cover 3–6 months of essential expenses — even as a student.",
+  "GST at 9% means every $100 you spend, $8.26 goes to tax. Worth knowing.",
+  "Paying annually instead of monthly saves 15–20% on most digital subscriptions.",
+  "Brand loyalty is often just habit, not actual quality difference. Try house brands.",
+  "Loss aversion: losing $20 hurts twice as much as gaining $20 feels good.",
+  "Your highest-spend day is almost always Friday or Saturday. Track it.",
+  "Cooking two meals a week instead of ordering in can save $80–$120/month.",
+  "FOMO spending at events and outings is the silent budget killer for students.",
+  "A $4 kopi every day is $1,460 a year. That's a semester's worth of books.",
+  "Compound interest at 4% means $1,000 saved today becomes $2,191 in 20 years.",
+  "Income from part-time work should have a savings rate built in from day one.",
+  "Discounts at Kopitiam with student card — are you using yours?",
+  "Splitting grocery runs with housemates reduces waste and cost for everyone.",
+  "The mental accounting trap makes you spend ang pao money faster than earned money.",
+  "Hawker centres over restaurants: same food culture, 40–60% cheaper.",
+  "Check your telco plan. Students often overpay for data they don't fully use.",
+  "Food delivery fees add 20–30% to any meal. That's the real cost of convenience.",
+  "The best financial habit is boring: track, review, adjust — every single month.",
 ];
 
 const LESSONS = [
@@ -723,7 +723,7 @@ export default function PriceCheck() {
   const [selectedCompanion, setSelectedCompanion] = useState(null);
   const [isGuest, setIsGuest] = useState(false);
   const [tab, setTab] = useState("home");
-  const [logs, setLogs] = useState(MOCK_LOGS);
+  const [logs, setLogs] = useState([]);
   const [showAlert, setShowAlert] = useState(true);
   const [showProfile, setShowProfile] = useState(false);
   const [showCompanionEdit, setShowCompanionEdit] = useState(false);
@@ -743,6 +743,7 @@ export default function PriceCheck() {
   const [authEmail, setAuthEmail] = useState("");
   const [authPass, setAuthPass] = useState("");
   const [resetConfirm, setResetConfirm] = useState(null); // null | "month" | "all" | "full"
+  const [resetMonthTarget, setResetMonthTarget] = useState(null);
 
   const today = new Date();
   const [viewMonth, setViewMonth] = useState(today.getMonth());
@@ -795,6 +796,87 @@ export default function PriceCheck() {
   viewMonthLogs.forEach((l) => {
     viewCatSpending[l.category] = (viewCatSpending[l.category] || 0) + l.price;
   });
+
+  // ── REAL PRICE TRACKING ──
+  // Group logs by normalised item name, track price history
+  const priceHistory = {};
+  [...logs].sort((a, b) => a.date.localeCompare(b.date)).forEach(l => {
+    const key = l.item.toLowerCase().trim();
+    if (!priceHistory[key]) priceHistory[key] = { name: l.item, prices: [], dates: [], category: l.category };
+    priceHistory[key].prices.push(l.price);
+    priceHistory[key].dates.push(l.date);
+  });
+
+  // Build tracked items — only items logged more than once
+  const trackedItems = Object.values(priceHistory)
+    .filter(t => t.prices.length >= 2)
+    .map(t => {
+      const first = t.prices[0];
+      const last = t.prices[t.prices.length - 1];
+      const diff = last - first;
+      const trend = diff > 0.01 ? "up" : diff < -0.01 ? "down" : "flat";
+      return { ...t, first, last, diff, trend };
+    });
+
+  // Personal inflation rate: compare avg price of tracked items this month vs last month
+  const calcInflation = () => {
+    if (trackedItems.length === 0) return null;
+    let increases = 0; let total = 0;
+    trackedItems.forEach(t => {
+      if (t.trend === "up") increases += (t.diff / t.first) * 100;
+      total++;
+    });
+    return total > 0 ? (increases / total).toFixed(1) : null;
+  };
+  const personalInflation = calcInflation();
+
+  // Price alerts — items that went up since last log
+  const priceAlerts = trackedItems.filter(t => {
+    const lastTwo = t.prices.slice(-2);
+    return lastTwo.length === 2 && lastTwo[1] > lastTwo[0];
+  });
+
+  // Best value food comparison — food items logged from multiple stores
+  const foodByStore = {};
+  logs.filter(l => l.category === "food" && l.store).forEach(l => {
+    const key = l.item.toLowerCase().trim();
+    if (!foodByStore[key]) foodByStore[key] = {};
+    if (!foodByStore[key][l.store]) foodByStore[key][l.store] = { prices: [], ratings: [] };
+    foodByStore[key][l.store].prices.push(l.price);
+    if (l.rating) foodByStore[key][l.store].ratings.push(l.rating);
+  });
+  const foodComparisons = Object.entries(foodByStore)
+    .filter(([, stores]) => Object.keys(stores).length >= 2)
+    .map(([item, stores]) => {
+      const storeData = Object.entries(stores).map(([store, data]) => ({
+        store,
+        avgPrice: data.prices.reduce((a, b) => a + b, 0) / data.prices.length,
+        avgRating: data.ratings.length > 0 ? data.ratings.reduce((a, b) => a + b, 0) / data.ratings.length : null,
+      }));
+      storeData.sort((a, b) => {
+        if (a.avgRating && b.avgRating) return (b.avgRating / b.avgPrice) - (a.avgRating / a.avgPrice);
+        return a.avgPrice - b.avgPrice;
+      });
+      return { item, stores: storeData };
+    });
+
+  // Weekly spending
+  const getWeekStart = (d) => { const dt = new Date(d); dt.setDate(dt.getDate() - dt.getDay()); return dt.toISOString().slice(0, 10); };
+  const thisWeekStart = getWeekStart(today.toISOString().slice(0, 10));
+  const lastWeekDate = new Date(today); lastWeekDate.setDate(today.getDate() - 7);
+  const lastWeekStart = getWeekStart(lastWeekDate.toISOString().slice(0, 10));
+  const thisWeekLogs = logs.filter(l => l.date >= thisWeekStart);
+  const lastWeekLogs = logs.filter(l => l.date >= lastWeekStart && l.date < thisWeekStart);
+  const thisWeekTotal = thisWeekLogs.reduce((s, l) => s + l.price, 0);
+  const lastWeekTotal = lastWeekLogs.reduce((s, l) => s + l.price, 0);
+  const weekChange = lastWeekTotal > 0 ? Math.round(((thisWeekTotal - lastWeekTotal) / lastWeekTotal) * 100) : 0;
+  const thisWeekBigCat = CATEGORIES.find(c => {
+    const catTotals = {}; thisWeekLogs.forEach(l => { catTotals[l.category] = (catTotals[l.category]||0)+l.price; });
+    return c.id === Object.entries(catTotals).sort((a,b)=>b[1]-a[1])[0]?.[0];
+  });
+
+  // Get all months that have logs for the month picker in reset
+  const logMonths = [...new Set(logs.map(l => l.date.slice(0, 7)))].sort().reverse();
 
   const catBudgets = {
     food: budgetNum * 0.25,
@@ -1147,8 +1229,10 @@ export default function PriceCheck() {
                   <>
                     <button onClick={() => setResetConfirm("month")} style={{ width: "100%", background: "white", border: "1.5px solid var(--border2)", borderRadius: 12, padding: "12px 14px", marginBottom: 8, display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer" }}>
                       <div style={{ textAlign: "left" }}>
-                        <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text)" }}>Clear This Month</div>
-                        <div style={{ fontSize: 11, color: "var(--text3)", marginTop: 2 }}>Remove {MONTH_NAMES[today.getMonth()]} logs only</div>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text)" }}>Clear by Month</div>
+                        <div style={{ fontSize: 11, color: "var(--text3)", marginTop: 2 }}>
+                          {logMonths.length === 0 ? "No logged months yet" : `${logMonths.length} month${logMonths.length !== 1 ? "s" : ""} with data`}
+                        </div>
                       </div>
                       <span style={{ fontSize: 16, color: "var(--text3)" }}>›</span>
                     </button>
@@ -1175,12 +1259,33 @@ export default function PriceCheck() {
                       {resetConfirm === "month" ? "🗓️" : resetConfirm === "all" ? "🗑️" : "⚠️"}
                     </div>
                     <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text)", marginBottom: 6 }}>
-                      {resetConfirm === "month" && `Clear ${MONTH_NAMES[today.getMonth()]} logs?`}
+                      {resetConfirm === "month" && "Clear logs for a specific month"}
                       {resetConfirm === "all" && "Clear all purchase logs?"}
                       {resetConfirm === "full" && "Full reset? This cannot be undone."}
                     </div>
                     <div style={{ fontSize: 12, color: "var(--text3)", marginBottom: 16, lineHeight: 1.5 }}>
-                      {resetConfirm === "month" && `${thisMonthLogs.length} logs from this month will be removed.`}
+                      {resetConfirm === "month" && (
+                        <div>
+                          <div style={{ marginBottom: 10 }}>Select the month to clear:</div>
+                          {logMonths.length === 0 ? (
+                            <div style={{ color: "var(--text3)", fontSize: 12 }}>No data to clear.</div>
+                          ) : (
+                            <div style={{ display: "flex", flexDirection: "column", gap: 6, maxHeight: 160, overflowY: "auto" }}>
+                              {logMonths.map(m => {
+                                const [yr, mo] = m.split("-");
+                                const count = logs.filter(l => l.date.startsWith(m)).length;
+                                return (
+                                  <button key={m} onClick={() => setResetMonthTarget(m)}
+                                    style={{ padding: "10px 12px", borderRadius: 10, border: `1.5px solid ${resetMonthTarget === m ? "var(--primary)" : "var(--border2)"}`, background: resetMonthTarget === m ? "var(--bg2)" : "white", display: "flex", justifyContent: "space-between", cursor: "pointer", fontSize: 13, fontWeight: 600, color: "var(--text)" }}>
+                                    <span>{MONTH_NAMES[parseInt(mo)-1]} {yr}</span>
+                                    <span style={{ color: "var(--text3)" }}>{count} logs</span>
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      )}
                       {resetConfirm === "all" && `All ${logs.length} logs will be deleted. Your budget and companion stay.`}
                       {resetConfirm === "full" && "All data, settings and companion will be wiped. You will start fresh."}
                     </div>
@@ -1188,7 +1293,8 @@ export default function PriceCheck() {
                       <button onClick={() => setResetConfirm(null)} style={{ flex: 1, background: "white", border: "1.5px solid var(--border2)", borderRadius: 12, padding: "12px", fontSize: 13, fontWeight: 700, color: "var(--text2)", cursor: "pointer" }}>Cancel</button>
                       <button onClick={() => {
                         if (resetConfirm === "month") {
-                          setLogs(prev => prev.filter(l => !l.date.startsWith(currentMonthStr)));
+                          if (resetMonthTarget) setLogs(prev => prev.filter(l => !l.date.startsWith(resetMonthTarget)));
+                          setResetMonthTarget(null);
                         } else if (resetConfirm === "all") {
                           setLogs([]);
                         } else if (resetConfirm === "full") {
@@ -1204,7 +1310,7 @@ export default function PriceCheck() {
                         setResetConfirm(null);
                         setShowProfile(false);
                       }} style={{ flex: 1, background: resetConfirm === "full" ? "var(--red)" : "var(--orange-mid)", border: "none", borderRadius: 12, padding: "12px", fontSize: 13, fontWeight: 800, color: resetConfirm === "full" ? "white" : "var(--text)", cursor: "pointer" }}>
-                        {resetConfirm === "full" ? "Yes, Reset" : "Confirm"}
+                        {resetConfirm === "full" ? "Yes, Reset" : resetConfirm === "month" ? `Clear ${resetMonthTarget ? logs.filter(l=>l.date.startsWith(resetMonthTarget)).length + " logs" : "—"}` : "Confirm"}
                       </button>
                     </div>
                   </div>
@@ -1272,11 +1378,14 @@ export default function PriceCheck() {
               </div>
             )}
 
-            {showAlert && (
+            {priceAlerts.length > 0 && showAlert && (
               <div className="alert-banner" style={{ margin: "10px 20px" }}>
                 <div style={{ display: "flex", alignItems: "flex-start", gap: 8, flex: 1 }}>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--orange)" strokeWidth="2" style={{ marginTop: 1, flexShrink: 0 }}><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-                  <div className="alert-text">Kopi O is up $0.30 from your last log at Uncle's Stall.</div>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--red)" strokeWidth="2" style={{ marginTop: 1, flexShrink: 0 }}><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                  <div className="alert-text">
+                    {priceAlerts[0].name} is up ${Math.abs(priceAlerts[0].prices[priceAlerts[0].prices.length-1] - priceAlerts[0].prices[priceAlerts[0].prices.length-2]).toFixed(2)} from your last log.
+                    {priceAlerts.length > 1 && ` (+${priceAlerts.length - 1} more)`}
+                  </div>
                 </div>
                 <button className="alert-dismiss" onClick={() => setShowAlert(false)}>✕</button>
               </div>
@@ -1309,6 +1418,16 @@ export default function PriceCheck() {
               </div>
             </div>
 
+            {trackedItems.length > 0 && (
+              <div style={{ margin: "0 16px 12px", display: "flex", alignItems: "center", justifyContent: "space-between", background: "var(--bg2)", border: "1.5px solid var(--border2)", borderRadius: 14, padding: "12px 16px", cursor: "pointer" }} onClick={() => setTab("tracker")}>
+                <div>
+                  <div style={{ fontSize: 12, fontWeight: 800, color: "var(--primary)", marginBottom: 2 }}>📈 PRICE TRACKER</div>
+                  <div style={{ fontSize: 12, color: "var(--text3)" }}>{trackedItems.length} item{trackedItems.length !== 1 ? "s" : ""} being tracked · {priceAlerts.length > 0 ? `${priceAlerts.length} price rise detected` : "no recent increases"}</div>
+                </div>
+                <span style={{ fontSize: 16, color: "var(--text3)" }}>›</span>
+              </div>
+            )}
+
             <div className="daily-fact-card">
               <div className="fact-dot" />
               <div className="fact-text">{dailyFact}</div>
@@ -1319,21 +1438,28 @@ export default function PriceCheck() {
                 <div style={{ fontSize: 11, color: "var(--text3)", fontWeight: 800, letterSpacing: "0.6px" }}>RECENT LOGS</div>
                 <div style={{ fontSize: 11, color: "var(--primary)", fontWeight: 700 }}>{thisMonthLogs.length} this month</div>
               </div>
-              {logs.slice(0, 5).map((log) => {
-                const cat = CATEGORIES.find((c) => c.id === log.category);
-                return (
-                  <div key={log.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 0", borderBottom: "1px solid var(--border)" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                      <div style={{ width: 32, height: 32, borderRadius: 9, background: `${cat?.color}22`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15 }}>{cat?.icon}</div>
-                      <div>
-                        <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text)" }}>{log.item}</div>
-                        <div style={{ fontSize: 11, color: "var(--text3)" }}>{log.date}</div>
+              {logs.length === 0 ? (
+                <div style={{ textAlign: "center", padding: "24px 0", color: "var(--text3)" }}>
+                  <div style={{ fontSize: 13, marginBottom: 10 }}>No purchases logged yet.</div>
+                  <button className="btn-primary" style={{ width: "auto", padding: "10px 24px", fontSize: 13 }} onClick={() => setTab("log")}>Log your first purchase</button>
+                </div>
+              ) : (
+                logs.slice(0, 5).map((log) => {
+                  const cat = CATEGORIES.find((c) => c.id === log.category);
+                  return (
+                    <div key={log.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 0", borderBottom: "1px solid var(--border)" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                        <div style={{ width: 32, height: 32, borderRadius: 9, background: `${cat?.color}22`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15 }}>{cat?.icon}</div>
+                        <div>
+                          <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text)" }}>{log.item}</div>
+                          <div style={{ fontSize: 11, color: "var(--text3)" }}>{log.date}</div>
+                        </div>
                       </div>
+                      <div style={{ fontSize: 15, fontWeight: 800, color: "var(--text)" }}>${log.price.toFixed(2)}</div>
                     </div>
-                    <div style={{ fontFamily: "'Fredoka One'", fontSize: 15, color: "var(--text)" }}>${log.price.toFixed(2)}</div>
-                  </div>
-                );
-              })}
+                  );
+                })
+              )}
             </div>
           </div>
         )}
@@ -1640,26 +1766,53 @@ export default function PriceCheck() {
         {/* ── DIGEST TAB ── */}
         {tab === "digest" && (
           <div className="screen">
-            <div style={{ padding: "24px 20px 16px" }}>
-              <div style={{ fontSize: 11, color: "var(--text3)", fontWeight: 800, letterSpacing: "0.8px", marginBottom: 10 }}>WEEK OF MAY 26 – JUN 1</div>
-              <div className="digest-headline">Quiet week — your wallet survived.</div>
+            <div style={{ padding: "24px 16px 16px" }}>
+              <div style={{ fontSize: 11, color: "var(--text3)", fontWeight: 800, letterSpacing: "0.8px", marginBottom: 10 }}>
+                WEEK OF {thisWeekStart.toUpperCase()}
+              </div>
+              <div className="digest-headline">
+                {thisWeekLogs.length === 0
+                  ? "Nothing logged yet this week."
+                  : weekChange < -10
+                  ? "Quiet week — your wallet survived."
+                  : weekChange > 20
+                  ? "Watch out — spending spiked this week."
+                  : weekChange > 0
+                  ? "Spending nudged up this week."
+                  : "Steady week. You're on track."}
+              </div>
             </div>
 
             <div className="digest-grid">
               <div className="digest-card">
                 <div className="digest-card-label">SPENT THIS WEEK</div>
-                <div className="digest-card-val">$94</div>
-                <div className="digest-card-sub" style={{ color: "var(--green)" }}>▼ 12% vs last week</div>
+                <div className="digest-card-val">${thisWeekTotal.toFixed(0)}</div>
+                <div className="digest-card-sub" style={{ color: weekChange <= 0 ? "var(--green)" : "var(--red)" }}>
+                  {weekChange <= 0 ? "▼" : "▲"} {Math.abs(weekChange)}% vs last week
+                </div>
               </div>
               <div className="digest-card">
                 <div className="digest-card-label">BIGGEST CATEGORY</div>
-                <div className="digest-card-val" style={{ fontSize: 16 }}>🛒 Groceries</div>
-                <div className="digest-card-sub">$67.40</div>
+                <div className="digest-card-val" style={{ fontSize: 16 }}>
+                  {thisWeekBigCat ? `${thisWeekBigCat.icon} ${thisWeekBigCat.label}` : "—"}
+                </div>
+                <div className="digest-card-sub">this week</div>
               </div>
               <div className="digest-card">
                 <div className="digest-card-label">PRICE HIKE CAUGHT</div>
-                <div className="digest-card-val" style={{ fontSize: 16 }}>Kopi O</div>
-                <div className="digest-card-sub" style={{ color: "var(--red)" }}>+$0.30 ↑</div>
+                {priceAlerts.length > 0 ? (
+                  <>
+                    <div className="digest-card-val" style={{ fontSize: 14 }}>{priceAlerts[0].name}</div>
+                    <div className="digest-card-sub" style={{ color: "var(--red)" }}>
+                      +${(priceAlerts[0].prices[priceAlerts[0].prices.length-1] - priceAlerts[0].prices[priceAlerts[0].prices.length-2]).toFixed(2)} ↑
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="digest-card-val" style={{ fontSize: 14, color: "var(--green)" }}>None</div>
+                    <div className="digest-card-sub">no increases detected</div>
+                  </>
+                )}
               </div>
               <div className="digest-card">
                 <div className="digest-card-label">BUDGET USED</div>
@@ -1668,20 +1821,34 @@ export default function PriceCheck() {
               </div>
             </div>
 
-            <div className="digest-insight">
-              You spent 12% less than last week. Most of that came from fewer restaurant visits. Your grocery run on the 25th was your biggest single spend.
-            </div>
+            {thisWeekLogs.length === 0 ? (
+              <div className="digest-insight">No logs this week yet. Start logging your purchases to see your weekly summary here.</div>
+            ) : (
+              <div className="digest-insight">
+                {weekChange < 0
+                  ? `Good week — you spent ${Math.abs(weekChange)}% less than last week. `
+                  : weekChange > 0
+                  ? `Watch out — spending is up ${weekChange}% from last week. `
+                  : "Spending is on par with last week. "}
+                {thisWeekBigCat && `Your biggest category was ${thisWeekBigCat.label}.`}
+                {priceAlerts.length > 0 && ` ${priceAlerts[0].name} has gone up in price since your last log.`}
+              </div>
+            )}
 
-            <div style={{ padding: "20px 20px 0" }}>
-              <div style={{ fontFamily: "'Fredoka One'", fontSize: 17, color: "var(--text)", marginBottom: 14 }}>Same week, last month</div>
+            <div style={{ padding: "20px 16px 0" }}>
+              <div style={{ fontSize: 14, fontWeight: 800, color: "var(--text)", marginBottom: 14 }}>This Month So Far</div>
               <div className="cat-card">
                 <div className="cat-card-row">
-                  <div style={{ fontSize: 13, color: "var(--text2)", fontWeight: 600 }}>Total Spent</div>
-                  <div style={{ fontFamily: "'Fredoka One'", fontSize: 15, color: "var(--text)" }}>$107</div>
+                  <div style={{ fontSize: 13, color: "var(--text2)", fontWeight: 600 }}>Total Logged</div>
+                  <div style={{ fontWeight: 800, fontSize: 15, color: "var(--text)" }}>${totalSpent.toFixed(2)}</div>
+                </div>
+                <div className="cat-card-row">
+                  <div style={{ fontSize: 13, color: "var(--text2)", fontWeight: 600 }}>Purchases Logged</div>
+                  <div style={{ fontSize: 13, color: "var(--text3)" }}>{thisMonthLogs.length} items</div>
                 </div>
                 <div className="cat-card-row" style={{ marginBottom: 0 }}>
-                  <div style={{ fontSize: 13, color: "var(--text2)", fontWeight: 600 }}>Biggest Category</div>
-                  <div style={{ fontSize: 13, color: "var(--text3)" }}>🍜 Food ($52)</div>
+                  <div style={{ fontSize: 13, color: "var(--text2)", fontWeight: 600 }}>Budget Remaining</div>
+                  <div style={{ fontSize: 13, color: budgetPct > 30 ? "var(--green)" : "var(--red)", fontWeight: 700 }}>${(budgetNum - totalSpent).toFixed(2)}</div>
                 </div>
               </div>
             </div>
@@ -1778,54 +1945,68 @@ export default function PriceCheck() {
               <div className="screen-title">Price Tracker</div>
             </div>
 
-            <div className="inflation-badge">
-              <div>
-                <div className="inflation-label">YOUR PERSONAL INFLATION</div>
-                <div style={{ fontSize: 11, color: "var(--text3)", marginTop: 2 }}>vs. last month</div>
+            {personalInflation !== null && (
+              <div className="inflation-badge">
+                <div>
+                  <div className="inflation-label">YOUR PERSONAL INFLATION</div>
+                  <div style={{ fontSize: 11, color: "var(--red)", marginTop: 2 }}>based on your logged items</div>
+                </div>
+                <div className="inflation-rate">+{personalInflation}%</div>
               </div>
-              <div className="inflation-rate">+4.2%</div>
-            </div>
+            )}
 
-            <div style={{ padding: "20px 20px 12px" }}>
+            <div style={{ padding: "20px 16px 12px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <div style={{ fontSize: 11, color: "var(--text3)", fontWeight: 800, letterSpacing: "0.6px" }}>TRACKED ITEMS</div>
+              <div style={{ fontSize: 11, color: "var(--text3)" }}>Items logged 2+ times</div>
             </div>
 
-            {PRICE_HISTORY.map((item, i) => (
-              <div key={i} className="price-item">
-                <div className="price-item-info">
-                  <div className="price-item-name">{item.name}</div>
-                  <div className="price-item-detail">
-                    ${item.prices[0].toFixed(2)} → ${item.prices[item.prices.length - 1].toFixed(2)}
+            {trackedItems.length === 0 ? (
+              <div style={{ textAlign: "center", padding: "40px 24px", color: "var(--text3)" }}>
+                <div style={{ fontSize: 40, marginBottom: 12 }}>📈</div>
+                <div style={{ fontSize: 15, fontWeight: 700, color: "var(--text)", marginBottom: 8 }}>No tracked items yet</div>
+                <div style={{ fontSize: 13, lineHeight: 1.6 }}>Log the same item at least twice and Price Pal will automatically track price changes for you.</div>
+                <button className="btn-primary" style={{ marginTop: 20, width: "auto", padding: "12px 28px" }} onClick={() => setTab("log")}>Log a Purchase</button>
+              </div>
+            ) : (
+              trackedItems.map((item, i) => (
+                <div key={i} className="price-item">
+                  <div className="price-item-info">
+                    <div className="price-item-name">{item.name}</div>
+                    <div className="price-item-detail">
+                      ${item.first.toFixed(2)} → ${item.last.toFixed(2)} · {item.prices.length} logs
+                    </div>
+                  </div>
+                  <Sparkline prices={item.prices} color={item.trend === "up" ? "#C0446A" : item.trend === "down" ? "#3B8A5E" : "#B8AEDD"} />
+                  <div className={`price-change ${item.trend === "up" ? "up" : item.trend === "down" ? "down" : ""}`}>
+                    {item.trend === "up" ? "↑" : item.trend === "down" ? "↓" : "—"}
+                    {item.trend !== "flat" && <span style={{ fontSize: 12 }}>${Math.abs(item.diff).toFixed(2)}</span>}
                   </div>
                 </div>
-                <Sparkline prices={item.prices} color={item.trend === "up" ? "#E87A7A" : item.trend === "down" ? "#5BA87A" : "#7A726A"} />
-                <div className={`price-change ${item.trend === "up" ? "up" : item.trend === "down" ? "down" : ""}`}>
-                  {item.trend === "up" ? "↑" : item.trend === "down" ? "↓" : "—"}
-                  {item.trend !== "flat" && `$${Math.abs(item.prices[item.prices.length - 1] - item.prices[0]).toFixed(2)}`}
-                </div>
-              </div>
-            ))}
+              ))
+            )}
 
-            <div style={{ padding: "8px 20px 0" }}>
-              <div style={{ fontFamily: "'Fredoka One'", fontSize: 17, color: "var(--text)", marginBottom: 12 }}>Best Value Comparison</div>
-            </div>
-            <div className="intel-card" style={{ marginBottom: 20 }}>
-              <div className="intel-title">Chicken Rice — 2 Stores</div>
-              <div className="intel-row">
-                <div>
-                  <div className="intel-name">Tian Tian</div>
-                  <div className="intel-detail">$5.50 · Rating 9/10</div>
+            {foodComparisons.length > 0 && (
+              <>
+                <div style={{ padding: "16px 16px 8px" }}>
+                  <div style={{ fontSize: 14, fontWeight: 800, color: "var(--text)", marginBottom: 4 }}>Best Value by Store</div>
+                  <div style={{ fontSize: 11, color: "var(--text3)" }}>Based on your own logs and ratings</div>
                 </div>
-                <span className="status-tag on-track">Best Value</span>
-              </div>
-              <div className="intel-row">
-                <div>
-                  <div className="intel-name">Kopitiam</div>
-                  <div className="intel-detail">$4.80 · Rating 6/10</div>
-                </div>
-                <span className="status-tag watch-out">Lower Rating</span>
-              </div>
-            </div>
+                {foodComparisons.map((comp, i) => (
+                  <div key={i} className="intel-card" style={{ marginBottom: 10 }}>
+                    <div className="intel-title">{comp.item}</div>
+                    {comp.stores.map((s, j) => (
+                      <div key={j} className="intel-row">
+                        <div>
+                          <div className="intel-name">{s.store}</div>
+                          <div className="intel-detail">${s.avgPrice.toFixed(2)}{s.avgRating ? ` · Rating ${s.avgRating.toFixed(1)}/10` : ""}</div>
+                        </div>
+                        {j === 0 && <span className="status-tag on-track">Best Value</span>}
+                      </div>
+                    ))}
+                  </div>
+                ))}
+              </>
+            )}
           </div>
         )}
 
