@@ -605,6 +605,11 @@ const styles = `
   .divider-line { flex: 1; height: 1px; background: var(--border2); }
   .divider-text { font-size: 11px; color: var(--text3); font-weight: 700; letter-spacing: 0.5px; }
   .companion-edit-btn { position: absolute; top: 8px; right: 8px; background: white; border: 1.5px solid var(--border2); border-radius: 8px; padding: 4px 8px; font-size: 10px; color: var(--text2); cursor: pointer; font-family: "Plus Jakarta Sans",sans-serif; font-weight: 700; box-shadow: var(--shadow); }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
 `
 
 // ─── DONUT CHART ──────────────────────────────────────────────────────────────
@@ -725,6 +730,14 @@ export default function PriceCheck() {
   const [companionCustom, setCompanionCustom] = useState({});
   const [insightCard, setInsightCard] = useState(null);
   const [logForm, setLogForm] = useState({ item: "", category: "food", price: "", store: "", rating: null, note: "", date: "" });
+  const [logMode, setLogMode] = useState("manual");
+  const [scanLoading, setScanLoading] = useState(false);
+  const [scanReview, setScanReview] = useState(false);
+  const [scanItems, setScanItems] = useState([]);
+  const [scanPreviewUrl, setScanPreviewUrl] = useState(null);
+  const [scanError, setScanError] = useState(null);
+  const cameraRef = useRef(null);
+  const uploadRef = useRef(null);
   const [scenarioAnswered, setScenarioAnswered] = useState(null);
   const [authMode, setAuthMode] = useState("signup");
   const [authEmail, setAuthEmail] = useState("");
@@ -784,6 +797,112 @@ export default function PriceCheck() {
       msg: `You've used ${pctUsed}% of your ${cat?.label.toLowerCase()} budget this month.`,
     });
     setLogForm({ item: "", category: "food", price: "", store: "", rating: null, note: "", date: "" });
+    setTab("home");
+  }
+
+  async function handleReceiptImage(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    setScanLoading(true);
+    setScanError(null);
+    setScanReview(false);
+    setScanPreviewUrl(URL.createObjectURL(file));
+
+    try {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = async () => {
+        const base64 = reader.result.split(",")[1];
+        const mediaType = file.type || "image/jpeg";
+
+        const response = await fetch("https://api.anthropic.com/v1/messages", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            model: "claude-sonnet-4-20250514",
+            max_tokens: 1000,
+            messages: [{
+              role: "user",
+              content: [
+                {
+                  type: "image",
+                  source: { type: "base64", media_type: mediaType, data: base64 }
+                },
+                {
+                  type: "text",
+                  text: `You are a receipt scanner. Extract ALL line items from this receipt.
+Return ONLY a valid JSON array. No explanation, no markdown, just the raw JSON array.
+Each object must have exactly these fields:
+- "item": string (item name, keep it concise)
+- "price": number (price as a number, no currency symbol)
+- "category": one of exactly: food, groceries, transport, entertainment, travel, health, shopping, going-out, education, bills, misc
+- "date": string in YYYY-MM-DD format (use today ${new Date().toISOString().slice(0,10)} if not visible)
+
+Example output:
+[{"item":"Chicken Rice","price":5.50,"category":"food","date":"2026-06-02"},{"item":"Milo","price":1.80,"category":"food","date":"2026-06-02"}]
+
+If you cannot read the receipt clearly, return:
+[{"item":"Unknown item","price":0,"category":"misc","date":"${new Date().toISOString().slice(0,10)}"}]`
+                }
+              ]
+            }]
+          })
+        });
+
+        const data = await response.json();
+        const rawText = data.content?.find(b => b.type === "text")?.text || "[]";
+        
+        let parsed = [];
+        try {
+          const clean = rawText.replace(/```json|```/g, "").trim();
+          parsed = JSON.parse(clean);
+          if (!Array.isArray(parsed)) parsed = [parsed];
+        } catch {
+          parsed = [{ item: "Unread item", price: 0, category: "misc", date: new Date().toISOString().slice(0, 10) }];
+        }
+
+        const today = new Date().toISOString().slice(0, 10);
+        const items = parsed.map((it, i) => ({
+          id: Date.now() + i,
+          item: it.item || "Unknown item",
+          price: String(parseFloat(it.price) || 0),
+          category: it.category || "misc",
+          date: it.date || today,
+          store: "",
+          rating: null,
+          note: ""
+        }));
+
+        setScanItems(items);
+        setScanReview(true);
+        setScanLoading(false);
+      };
+    } catch (err) {
+      setScanError("Could not read receipt. Please try again or enter manually.");
+      setScanLoading(false);
+    }
+    e.target.value = "";
+  }
+
+  function handleScanSave() {
+    if (scanItems.length === 0) return;
+    const today = new Date().toISOString().slice(0, 10);
+    const newLogs = scanItems.map((item, i) => ({
+      ...item,
+      id: Date.now() + i,
+      price: parseFloat(item.price) || 0,
+      date: item.date || today,
+    }));
+    setLogs(prev => [...newLogs, ...prev]);
+    setInsightCard({
+      icon: "🧾",
+      title: "Receipt Logged",
+      msg: `${newLogs.length} item${newLogs.length !== 1 ? "s" : ""} saved from your receipt. Total: $${newLogs.reduce((s, l) => s + l.price, 0).toFixed(2)}`,
+    });
+    setScanReview(false);
+    setScanItems([]);
+    setScanPreviewUrl(null);
+    setLogMode("manual");
     setTab("home");
   }
 
@@ -1076,66 +1195,177 @@ export default function PriceCheck() {
         {tab === "log" && (
           <div className="screen">
             <div className="screen-header">
-              <div className="back-btn" onClick={() => setTab("home")}>
+              <div className="back-btn" onClick={() => { setTab("home"); setLogMode("manual"); setScanReview(false); setScanItems([]); setScanPreviewUrl(null); setScanError(null); }}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15 18 9 12 15 6"/></svg>
               </div>
               <div className="screen-title">Log a Purchase</div>
             </div>
 
-            <div className="form-field">
-              <label className="form-label">Item Name</label>
-              <input className="form-input" placeholder="e.g. Chicken Rice" value={logForm.item} onChange={e => setLogForm(p => ({ ...p, item: e.target.value }))} />
+            <div className="log-tabs">
+              <button className={`log-tab ${logMode === "manual" ? "active" : ""}`} onClick={() => setLogMode("manual")}>Enter Manually</button>
+              <button className={`log-tab ${logMode === "scan" ? "active" : ""}`} onClick={() => setLogMode("scan")}>Scan Receipt</button>
             </div>
 
-            <div style={{ margin: "0 0 14px" }}>
-              <div style={{ padding: "0 20px 6px", fontSize: 11, fontWeight: 800, color: "var(--text3)", letterSpacing: "0.8px", textTransform: "uppercase" }}>Category</div>
-              <div className="category-scroll">
-                {CATEGORIES.map((cat) => (
-                  <div key={cat.id} className={`cat-chip ${logForm.category === cat.id ? "selected" : ""}`} style={{ color: cat.color }} onClick={() => setLogForm(p => ({ ...p, category: cat.id }))}>
-                    <span>{cat.icon}</span> {cat.label}
-                  </div>
-                ))}
-              </div>
-            </div>
+            {/* SCAN MODE */}
+            {logMode === "scan" && !scanReview && (
+              <div style={{ padding: "0 16px" }}>
+                {/* hidden file inputs */}
+                <input ref={cameraRef} type="file" accept="image/*" capture="environment" style={{ display: "none" }} onChange={handleReceiptImage} />
+                <input ref={uploadRef} type="file" accept="image/*" style={{ display: "none" }} onChange={handleReceiptImage} />
 
-            <div className="form-field">
-              <label className="form-label">Price</label>
-              <input className="form-input" type="number" placeholder="0.00" value={logForm.price} onChange={e => setLogForm(p => ({ ...p, price: e.target.value }))} />
-            </div>
+                <div style={{ background: "var(--bg2)", border: "1.5px dashed var(--border2)", borderRadius: 18, padding: "32px 20px", textAlign: "center", marginBottom: 16 }}>
+                  <div style={{ fontSize: 40, marginBottom: 12 }}>🧾</div>
+                  <div style={{ fontSize: 15, fontWeight: 800, color: "var(--text)", marginBottom: 6 }}>Snap or upload your receipt</div>
+                  <div style={{ fontSize: 12, color: "var(--text3)", marginBottom: 24, lineHeight: 1.5 }}>AI will read the items and prices automatically. You can review and edit everything before saving.</div>
 
-            <div className="form-field">
-              <label className="form-label">Date</label>
-              <input className="form-input" type="date" value={logForm.date} onChange={e => setLogForm(p => ({ ...p, date: e.target.value }))} />
-            </div>
+                  <button className="btn-primary" style={{ marginBottom: 10 }} onClick={() => cameraRef.current.click()}>
+                    <span style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                      Take Photo
+                    </span>
+                  </button>
+                  <button className="btn-secondary" onClick={() => uploadRef.current.click()}>
+                    <span style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                      Upload from Device
+                    </span>
+                  </button>
+                </div>
 
-            {logForm.category === "food" && (
-              <>
-                <div className="section-divider" />
-                <div style={{ padding: "0 20px", marginBottom: 14 }}>
-                  <div style={{ fontSize: 12, color: "var(--text3)", fontWeight: 700, marginBottom: 12 }}>Food Details <span style={{ color: "var(--text3)", fontWeight: 500 }}>(optional)</span></div>
-                  <div className="form-field" style={{ margin: "0 0 14px" }}>
-                    <label className="form-label">Store or Place</label>
-                    <input className="form-input" placeholder="e.g. Tian Tian Chicken Rice" value={logForm.store} onChange={e => setLogForm(p => ({ ...p, store: e.target.value }))} />
-                  </div>
-                  <div style={{ marginBottom: 14 }}>
-                    <label className="form-label" style={{ display: "block", marginBottom: 8 }}>Value Rating</label>
-                    <div className="rating-row">
-                      {[1,2,3,4,5,6,7,8,9,10].map(n => (
-                        <button key={n} className={`rating-btn ${logForm.rating === n ? "selected" : ""}`} onClick={() => setLogForm(p => ({ ...p, rating: n }))}>{n}</button>
-                      ))}
+                {scanLoading && (
+                  <div style={{ background: "white", border: "1.5px solid var(--border)", borderRadius: 16, padding: "24px 20px", textAlign: "center", boxShadow: "var(--shadow)" }}>
+                    <div style={{ fontSize: 24, marginBottom: 12 }}>🔍</div>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text)", marginBottom: 6 }}>Reading your receipt...</div>
+                    <div style={{ fontSize: 12, color: "var(--text3)" }}>AI is extracting items and prices</div>
+                    <div style={{ marginTop: 16, height: 4, background: "var(--bg3)", borderRadius: 4, overflow: "hidden" }}>
+                      <div style={{ height: "100%", width: "70%", background: "var(--primary)", borderRadius: 4, animation: "pulse 1.5s ease-in-out infinite" }} />
                     </div>
                   </div>
-                  <div>
-                    <label className="form-label">Quick Note</label>
-                    <input className="form-input" placeholder="One line about this meal..." maxLength={80} value={logForm.note} onChange={e => setLogForm(p => ({ ...p, note: e.target.value }))} />
+                )}
+
+                {scanError && (
+                  <div style={{ background: "var(--red-bg)", border: "1.5px solid var(--red-mid)", borderRadius: 14, padding: "14px 16px", color: "var(--red)", fontSize: 13, fontWeight: 600 }}>
+                    {scanError}
                   </div>
+                )}
+              </div>
+            )}
+
+            {/* SCAN REVIEW MODE */}
+            {logMode === "scan" && scanReview && (
+              <div style={{ padding: "0 16px" }}>
+                {scanPreviewUrl && (
+                  <div style={{ marginBottom: 14, borderRadius: 14, overflow: "hidden", border: "1.5px solid var(--border)" }}>
+                    <img src={scanPreviewUrl} alt="Receipt" style={{ width: "100%", maxHeight: 180, objectFit: "cover" }} />
+                  </div>
+                )}
+                <div style={{ background: "var(--green-bg)", border: "1.5px solid var(--green-mid)", borderRadius: 14, padding: "12px 14px", marginBottom: 16, display: "flex", alignItems: "center", gap: 8 }}>
+                  <span style={{ fontSize: 16 }}>✓</span>
+                  <span style={{ fontSize: 13, color: "var(--green)", fontWeight: 700 }}>Receipt read successfully. Review and edit below.</span>
+                </div>
+
+                {scanItems.map((item, idx) => (
+                  <div key={idx} style={{ background: "white", border: "1.5px solid var(--border)", borderRadius: 14, padding: "14px 16px", marginBottom: 10, boxShadow: "var(--shadow)" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+                      <div style={{ fontSize: 12, fontWeight: 800, color: "var(--text3)", letterSpacing: "0.5px" }}>ITEM {idx + 1}</div>
+                      <button onClick={() => setScanItems(prev => prev.filter((_, i) => i !== idx))} style={{ background: "var(--red-bg)", border: "none", borderRadius: 8, padding: "4px 10px", fontSize: 11, color: "var(--red)", fontWeight: 800, cursor: "pointer" }}>Remove</button>
+                    </div>
+                    <div style={{ marginBottom: 8 }}>
+                      <div style={{ fontSize: 10, fontWeight: 800, color: "var(--text3)", letterSpacing: "0.6px", marginBottom: 4 }}>ITEM NAME</div>
+                      <input className="form-input" style={{ padding: "10px 12px" }} value={item.item} onChange={e => setScanItems(prev => prev.map((it, i) => i === idx ? { ...it, item: e.target.value } : it))} />
+                    </div>
+                    <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: 10, fontWeight: 800, color: "var(--text3)", letterSpacing: "0.6px", marginBottom: 4 }}>PRICE ($)</div>
+                        <input className="form-input" style={{ padding: "10px 12px" }} type="number" value={item.price} onChange={e => setScanItems(prev => prev.map((it, i) => i === idx ? { ...it, price: e.target.value } : it))} />
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: 10, fontWeight: 800, color: "var(--text3)", letterSpacing: "0.6px", marginBottom: 4 }}>DATE</div>
+                        <input className="form-input" style={{ padding: "10px 12px" }} type="date" value={item.date} onChange={e => setScanItems(prev => prev.map((it, i) => i === idx ? { ...it, date: e.target.value } : it))} />
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 10, fontWeight: 800, color: "var(--text3)", letterSpacing: "0.6px", marginBottom: 6 }}>CATEGORY</div>
+                      <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                        {CATEGORIES.map(cat => (
+                          <button key={cat.id} onClick={() => setScanItems(prev => prev.map((it, i) => i === idx ? { ...it, category: cat.id } : it))}
+                            style={{ padding: "5px 10px", borderRadius: 20, border: `1.5px solid ${item.category === cat.id ? cat.color : "var(--border2)"}`, background: item.category === cat.id ? `${cat.color}18` : "white", fontSize: 11, fontWeight: 700, color: item.category === cat.id ? cat.color : "var(--text3)", cursor: "pointer" }}>
+                            {cat.icon} {cat.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+
+                <button className="btn-primary" style={{ marginBottom: 10 }} onClick={handleScanSave}>
+                  Save {scanItems.length} Item{scanItems.length !== 1 ? "s" : ""}
+                </button>
+                <button className="btn-secondary" onClick={() => { setScanReview(false); setScanItems([]); setScanPreviewUrl(null); }}>
+                  Scan Again
+                </button>
+              </div>
+            )}
+
+            {/* MANUAL MODE */}
+            {logMode === "manual" && (
+              <>
+                <div className="form-field">
+                  <label className="form-label">Item Name</label>
+                  <input className="form-input" placeholder="e.g. Chicken Rice" value={logForm.item} onChange={e => setLogForm(p => ({ ...p, item: e.target.value }))} />
+                </div>
+
+                <div style={{ margin: "0 0 14px" }}>
+                  <div style={{ padding: "0 16px 6px", fontSize: 11, fontWeight: 800, color: "var(--text3)", letterSpacing: "0.8px", textTransform: "uppercase" }}>Category</div>
+                  <div className="category-scroll">
+                    {CATEGORIES.map((cat) => (
+                      <div key={cat.id} className={`cat-chip ${logForm.category === cat.id ? "selected" : ""}`} style={{ color: cat.color }} onClick={() => setLogForm(p => ({ ...p, category: cat.id }))}>
+                        <span>{cat.icon}</span> {cat.label}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="form-field">
+                  <label className="form-label">Price</label>
+                  <input className="form-input" type="number" placeholder="0.00" value={logForm.price} onChange={e => setLogForm(p => ({ ...p, price: e.target.value }))} />
+                </div>
+
+                <div className="form-field">
+                  <label className="form-label">Date</label>
+                  <input className="form-input" type="date" value={logForm.date} onChange={e => setLogForm(p => ({ ...p, date: e.target.value }))} />
+                </div>
+
+                {logForm.category === "food" && (
+                  <>
+                    <div className="section-divider" />
+                    <div style={{ padding: "0 16px", marginBottom: 14 }}>
+                      <div style={{ fontSize: 12, color: "var(--text3)", fontWeight: 700, marginBottom: 12 }}>Food Details <span style={{ fontWeight: 500 }}>(optional)</span></div>
+                      <div className="form-field" style={{ margin: "0 0 14px" }}>
+                        <label className="form-label">Store or Place</label>
+                        <input className="form-input" placeholder="e.g. Tian Tian Chicken Rice" value={logForm.store} onChange={e => setLogForm(p => ({ ...p, store: e.target.value }))} />
+                      </div>
+                      <div style={{ marginBottom: 14 }}>
+                        <label className="form-label" style={{ display: "block", marginBottom: 8 }}>Value Rating</label>
+                        <div className="rating-row">
+                          {[1,2,3,4,5,6,7,8,9,10].map(n => (
+                            <button key={n} className={`rating-btn ${logForm.rating === n ? "selected" : ""}`} onClick={() => setLogForm(p => ({ ...p, rating: n }))}>{n}</button>
+                          ))}
+                        </div>
+                      </div>
+                      <div>
+                        <label className="form-label">Quick Note</label>
+                        <input className="form-input" placeholder="One line about this meal..." maxLength={80} value={logForm.note} onChange={e => setLogForm(p => ({ ...p, note: e.target.value }))} />
+                      </div>
+                    </div>
+                  </>
+                )}
+
+                <div style={{ padding: "4px 16px 20px" }}>
+                  <button className="btn-primary" onClick={handleLogSave}>Save Log</button>
                 </div>
               </>
             )}
-
-            <div style={{ padding: "4px 20px 20px" }}>
-              <button className="btn-primary" onClick={handleLogSave}>Save Log</button>
-            </div>
           </div>
         )}
 
