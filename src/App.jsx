@@ -830,82 +830,122 @@ export default function PriceCheck() {
   async function handleReceiptImage(e) {
     const file = e.target.files[0];
     if (!file) return;
+    const previewUrl = URL.createObjectURL(file);
+    setScanPreviewUrl(previewUrl);
     setScanLoading(true);
     setScanError(null);
     setScanReview(false);
-    setScanPreviewUrl(URL.createObjectURL(file));
 
     try {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = async () => {
-        const base64 = reader.result.split(",")[1];
-        const mediaType = file.type || "image/jpeg";
-
-        const response = await fetch("https://api.anthropic.com/v1/messages", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            model: "claude-sonnet-4-20250514",
-            max_tokens: 1000,
-            messages: [{
-              role: "user",
-              content: [
-                {
-                  type: "image",
-                  source: { type: "base64", media_type: mediaType, data: base64 }
-                },
-                {
-                  type: "text",
-                  text: `You are a receipt scanner. Extract ALL line items from this receipt.
-Return ONLY a valid JSON array. No explanation, no markdown, just the raw JSON array.
-Each object must have exactly these fields:
-- "item": string (item name, keep it concise)
-- "price": number (price as a number, no currency symbol)
-- "category": one of exactly: food, groceries, transport, entertainment, travel, health, shopping, going-out, education, bills, misc
-- "date": string in YYYY-MM-DD format (use today ${new Date().toISOString().slice(0,10)} if not visible)
-
-Example output:
-[{"item":"Chicken Rice","price":5.50,"category":"food","date":"2026-06-02"},{"item":"Milo","price":1.80,"category":"food","date":"2026-06-02"}]
-
-If you cannot read the receipt clearly, return:
-[{"item":"Unknown item","price":0,"category":"misc","date":"${new Date().toISOString().slice(0,10)}"}]`
-                }
-              ]
-            }]
-          })
+      // Load Tesseract from CDN dynamically
+      if (!window.Tesseract) {
+        await new Promise((resolve, reject) => {
+          const script = document.createElement("script");
+          script.src = "https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js";
+          script.onload = resolve;
+          script.onerror = reject;
+          document.head.appendChild(script);
         });
+      }
 
-        const data = await response.json();
-        const rawText = data.content?.find(b => b.type === "text")?.text || "[]";
-        
-        let parsed = [];
-        try {
-          const clean = rawText.replace(/```json|```/g, "").trim();
-          parsed = JSON.parse(clean);
-          if (!Array.isArray(parsed)) parsed = [parsed];
-        } catch {
-          parsed = [{ item: "Unread item", price: 0, category: "misc", date: new Date().toISOString().slice(0, 10) }];
+      const { data: { text } } = await window.Tesseract.recognize(file, "eng", {
+        logger: () => {}
+      });
+
+      const today = new Date().toISOString().slice(0, 10);
+      const lines = text.split("\n").map(l => l.trim()).filter(Boolean);
+
+      // Try to extract date from receipt
+      let receiptDate = today;
+      for (const line of lines) {
+        const dateMatch = line.match(/(\d{2})[\/\-](\d{2})[\/\-](\d{4})/);
+        if (dateMatch) {
+          receiptDate = `${dateMatch[3]}-${dateMatch[2]}-${dateMatch[1]}`;
+          break;
         }
+        const dateMatch2 = line.match(/(\d{4})[\/\-](\d{2})[\/\-](\d{2})/);
+        if (dateMatch2) {
+          receiptDate = dateMatch2[0];
+          break;
+        }
+      }
 
-        const today = new Date().toISOString().slice(0, 10);
-        const items = parsed.map((it, i) => ({
-          id: Date.now() + i,
-          item: it.item || "Unknown item",
-          price: String(parseFloat(it.price) || 0),
-          category: it.category || "misc",
-          date: it.date || today,
-          store: "",
+      // Try to extract store name (usually first non-empty lines)
+      let storeName = "";
+      for (let i = 0; i < Math.min(4, lines.length); i++) {
+        if (lines[i].length > 3 && !/^\d/.test(lines[i]) && !/receipt|invoice|date|time/i.test(lines[i])) {
+          storeName = lines[i];
+          break;
+        }
+      }
+
+      // Extract items with prices - look for lines with a price pattern
+      const skipWords = /subtotal|sub total|total|gst|tax|service|change|cash|visa|card|payment|thank|please|come|again|receipt|invoice|cashier|date|time|qty|amount|item/i;
+      const pricePattern = /\$?\s*(\d+\.\d{2})\s*$/;
+      const extracted = [];
+
+      for (const line of lines) {
+        if (skipWords.test(line)) continue;
+        const match = line.match(pricePattern);
+        if (match) {
+          const price = parseFloat(match[1]);
+          if (price <= 0 || price > 9999) continue;
+          // Get item name - remove price, qty patterns, dashes
+          let itemName = line
+            .replace(pricePattern, "")
+            .replace(/^\d+\s+x?\s*/i, "")
+            .replace(/x\s*\d+/i, "")
+            .replace(/[-*]+/g, "")
+            .replace(/\s+/g, " ")
+            .trim();
+          if (itemName.length < 2) continue;
+
+          // Guess category
+          let category = "misc";
+          const lower = itemName.toLowerCase();
+          if (/rice|noodle|chicken|fish|beef|pork|veg|meal|food|mee|laksa|roti|bread|toast|egg|curry|soup|burger|pizza|pasta|sushi|bento|set|lunch|dinner|breakfast|snack|cake|dessert|ice cream|waffle|salad|sandwich/i.test(lower)) category = "food";
+          else if (/tea|coffee|kopi|teh|milo|juice|drink|water|beer|wine|coke|pepsi|sprite|soda|smoothie|latte|cappuccino|americano/i.test(lower)) category = "food";
+          else if (/train|mrt|bus|grab|taxi|uber|transport|fare|ez-link|toll/i.test(lower)) category = "transport";
+          else if (/movie|cinema|concert|show|ticket|netflix|spotify|game|entertainment/i.test(lower)) category = "entertainment";
+          else if (/medicine|pharmacy|clinic|hospital|doctor|health|vitamin|supplement/i.test(lower)) category = "health";
+          else if (/shirt|pants|shoes|clothes|fashion|bag|dress|jacket|accessory/i.test(lower)) category = "shopping";
+          else if (/milk|eggs|bread|butter|flour|sugar|oil|salt|pepper|grocery|vegetable|fruit|meat|seafood/i.test(lower)) category = "groceries";
+          else if (/electricity|water|gas|internet|phone|bill|utilities/i.test(lower)) category = "bills";
+          else if (/bar|club|pub|cocktail|beer|party/i.test(lower)) category = "going-out";
+
+          extracted.push({
+            id: Date.now() + extracted.length,
+            item: itemName,
+            price: String(price),
+            category,
+            date: receiptDate,
+            store: storeName,
+            rating: null,
+            note: ""
+          });
+        }
+      }
+
+      if (extracted.length === 0) {
+        // Fallback: couldn't parse items, give user a blank editable row
+        extracted.push({
+          id: Date.now(),
+          item: "",
+          price: "",
+          category: "food",
+          date: receiptDate,
+          store: storeName,
           rating: null,
           note: ""
-        }));
+        });
+        setScanError("Could not auto-detect items. Please fill in manually below.");
+      }
 
-        setScanItems(items);
-        setScanReview(true);
-        setScanLoading(false);
-      };
+      setScanItems(extracted);
+      setScanReview(true);
+      setScanLoading(false);
     } catch (err) {
-      setScanError("Could not read receipt. Please try again or enter manually.");
+      setScanError("Could not read receipt. Try a clearer photo or enter manually.");
       setScanLoading(false);
     }
     e.target.value = "";
@@ -1343,7 +1383,7 @@ If you cannot read the receipt clearly, return:
                   <div style={{ background: "white", border: "1.5px solid var(--border)", borderRadius: 16, padding: "24px 20px", textAlign: "center", boxShadow: "var(--shadow)" }}>
                     <div style={{ fontSize: 24, marginBottom: 12 }}>🔍</div>
                     <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text)", marginBottom: 6 }}>Reading your receipt...</div>
-                    <div style={{ fontSize: 12, color: "var(--text3)" }}>AI is extracting items and prices</div>
+                    <div style={{ fontSize: 12, color: "var(--text3)" }}>This may take 5–10 seconds. Please wait.</div>
                     <div style={{ marginTop: 16, height: 4, background: "var(--bg3)", borderRadius: 4, overflow: "hidden" }}>
                       <div style={{ height: "100%", width: "70%", background: "var(--primary)", borderRadius: 4, animation: "pulse 1.5s ease-in-out infinite" }} />
                     </div>
