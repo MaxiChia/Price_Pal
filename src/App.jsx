@@ -1074,7 +1074,7 @@ export default function PriceCheck() {
                 <text x="40" y="52" textAnchor="middle" fontSize="32" fill="#1A1200" fontFamily="serif">$</text>
               </svg>
             </div>
-            <div className="onboard-logo">Price Check</div>
+            <div className="onboard-logo">Price Pal;</div>
             <div className="onboard-tagline">Your personal inflation tracker and financial companion.</div>
             <button className="btn-primary" onClick={() => setPhase("budget")}>Get Started</button>
           </div>
@@ -1365,7 +1365,7 @@ export default function PriceCheck() {
         {tab === "home" && (
           <div className="screen">
             <div className="home-header">
-              <div className="home-logo">Price Check</div>
+              <div className="home-logo">Price Pal</div>
               <div className="profile-btn" onClick={() => setShowProfile(true)}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
               </div>
