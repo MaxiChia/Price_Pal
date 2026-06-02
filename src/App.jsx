@@ -1074,7 +1074,7 @@ export default function PriceCheck() {
                 <text x="40" y="52" textAnchor="middle" fontSize="32" fill="#1A1200" fontFamily="serif">$</text>
               </svg>
             </div>
-            <div className="onboard-logo">Price Pal;</div>
+            <div className="onboard-logo">Price Pal</div>
             <div className="onboard-tagline">Your personal inflation tracker and financial companion.</div>
             <button className="btn-primary" onClick={() => setPhase("budget")}>Get Started</button>
           </div>
