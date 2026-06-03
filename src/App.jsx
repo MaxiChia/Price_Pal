@@ -813,10 +813,12 @@ export default function PriceCheck() {
         })));
       }
 
-      // If no companion set yet, go to onboarding
+      // If no companion set yet, go to onboarding (first time only)
       if (!profile?.companion) {
         setPhase("budget");
       } else {
+        setBudget(String(profile.budget || 2000));
+        setSelectedCompanion(profile.companion);
         setPhase("app");
       }
     } catch (err) {
@@ -858,7 +860,7 @@ export default function PriceCheck() {
     await query;
   }
   const [scenarioAnswered, setScenarioAnswered] = useState(null);
-  const [authMode, setAuthMode] = useState("signup");
+  const [authMode, setAuthMode] = useState("login");
   const [authEmail, setAuthEmail] = useState("");
   const [authPass, setAuthPass] = useState("");
   const [resetConfirm, setResetConfirm] = useState(null); // null | "month" | "all" | "full"
@@ -1185,24 +1187,25 @@ export default function PriceCheck() {
         result = await supabase.auth.signUp({ email: authEmail, password: authPass });
         if (result.error) throw result.error;
         if (result.data.user && !result.data.session) {
-          setAuthError("Check your email to confirm your account, then log in.");
+          // Email confirmation required
+          setAuthError("Check your email to confirm your account, then log in here.");
+          setAuthMode("login");
           setAuthLoading(false);
           return;
         }
+        // Email confirmation disabled — go straight to onboarding
+        const u = result.data.user;
+        setUser(u);
+        setIsGuest(false);
+        await loadUserData(u.id);
       } else {
         result = await supabase.auth.signInWithPassword({ email: authEmail, password: authPass });
         if (result.error) throw result.error;
+        const u = result.data.user;
+        setUser(u);
+        setIsGuest(false);
+        await loadUserData(u.id);
       }
-      const u = result.data.user;
-      setUser(u);
-      setIsGuest(false);
-      // Save onboarding choices to profile
-      await supabase.from("profiles").upsert({
-        id: u.id,
-        budget: parseFloat(budget) || 2000,
-        companion: selectedCompanion || "uncle-lim",
-      });
-      await loadUserData(u.id);
     } catch (err) {
       setAuthError(err.message || "Something went wrong. Please try again.");
     }
@@ -1258,7 +1261,8 @@ export default function PriceCheck() {
             </div>
             <div className="onboard-logo">Price Check</div>
             <div className="onboard-tagline">Your personal inflation tracker and financial companion.</div>
-            <button className="btn-primary" onClick={() => setPhase("budget")}>Get Started</button>
+            <button className="btn-primary" onClick={() => { setAuthMode("signup"); setPhase("auth"); }}>Get Started</button>
+            <button className="btn-secondary" style={{ marginTop: 0 }} onClick={() => { setAuthMode("login"); setPhase("auth"); }}>Log In</button>
           </div>
         </div>
       </>
@@ -1272,7 +1276,7 @@ export default function PriceCheck() {
         <div className="app">
           <div className="onboard-wrap" style={{ justifyContent: "flex-start", paddingTop: 60 }}>
             <div style={{ textAlign: "left", width: "100%" }}>
-              <div style={{ fontSize: 13, color: "var(--text3)", fontWeight: 800, letterSpacing: "0.8px", marginBottom: 8 }}>STEP 1 OF 3</div>
+              <div style={{ fontSize: 13, color: "var(--text3)", fontWeight: 800, letterSpacing: "0.8px", marginBottom: 8 }}>STEP 1 OF 2</div>
               <div className="onboard-logo" style={{ fontSize: 28, marginBottom: 10 }}>What's your monthly budget?</div>
               <div style={{ fontSize: 14, color: "var(--text3)", lineHeight: 1.6, marginBottom: 32 }}>
                 This is your personal limit. You can change it anytime.
@@ -1289,7 +1293,6 @@ export default function PriceCheck() {
               </div>
               <button className="btn-primary" onClick={async () => {
                 setPhase("companion");
-                if (user) await saveProfile({ budget: parseFloat(budget) || 2000 });
               }} style={{ marginTop: 16 }}>Continue</button>
             </div>
           </div>
@@ -1304,7 +1307,7 @@ export default function PriceCheck() {
         <style>{styles}</style>
         <div className="app">
           <div style={{ padding: "60px 20px 20px" }}>
-            <div style={{ fontSize: 13, color: "var(--text3)", fontWeight: 800, letterSpacing: "0.8px", marginBottom: 8 }}>STEP 2 OF 3</div>
+            <div style={{ fontSize: 13, color: "var(--text3)", fontWeight: 800, letterSpacing: "0.8px", marginBottom: 8 }}>STEP 2 OF 2 · Almost there!</div>
             <div className="onboard-logo" style={{ fontSize: 24, marginBottom: 6 }}>Choose your companion</div>
             <div style={{ fontSize: 13, color: "var(--text3)", marginBottom: 20, lineHeight: 1.5 }}>
               They'll react to your budget health in real time.
@@ -1327,7 +1330,14 @@ export default function PriceCheck() {
                 </div>
               ))}
             </div>
-            <button className="btn-primary" onClick={() => setPhase("auth")} disabled={!selectedCompanion} style={{ opacity: selectedCompanion ? 1 : 0.4 }}>Continue</button>
+            <button className="btn-primary" onClick={async () => {
+              if (!selectedCompanion) return;
+              await saveProfile({
+                budget: parseFloat(budget) || 2000,
+                companion: selectedCompanion,
+              });
+              setPhase("app");
+            }} disabled={!selectedCompanion} style={{ opacity: selectedCompanion ? 1 : 0.4 }}>Let's Go</button>
           </div>
         </div>
       </>
@@ -1341,7 +1351,7 @@ export default function PriceCheck() {
         <div className="app">
           <div className="auth-wrap">
             <div className="auth-title">{authMode === "signup" ? "Create your account" : "Welcome back"}</div>
-            <div className="auth-sub">Your data syncs across all devices when you're logged in.</div>
+            <div className="auth-sub">{authMode === "login" ? "Log in to access your spending data." : "Your data syncs across all devices when you're logged in."}</div>
             <div className="form-field" style={{ margin: "0 0 14px" }}>
               <label className="form-label">Email</label>
               <input className="form-input" type="email" placeholder="you@example.com" value={authEmail} onChange={e => setAuthEmail(e.target.value)} />
@@ -1370,7 +1380,7 @@ export default function PriceCheck() {
             <button className="btn-secondary" onClick={() => { setIsGuest(true); setPhase("app"); setUser(null); }}>Maybe later</button>
             <div style={{ textAlign: "center", marginTop: 20 }}>
               <button style={{ background: "none", border: "none", color: "var(--text3)", fontSize: 13, cursor: "pointer" }} onClick={() => setAuthMode(authMode === "signup" ? "login" : "signup")}>
-                {authMode === "signup" ? "Already have an account? Log in" : "Don't have an account? Sign up"}
+                {authMode === "login" ? "New here? Create an account" : "Already have an account? Log in"}
               </button>
             </div>
           </div>
