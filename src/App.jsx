@@ -1481,7 +1481,7 @@ export default function PriceCheck() {
                     </div>
                     <div style={{ display: "flex", gap: 8 }}>
                       <button onClick={() => setResetConfirm(null)} style={{ flex: 1, background: "white", border: "1.5px solid var(--border2)", borderRadius: 12, padding: "12px", fontSize: 13, fontWeight: 700, color: "var(--text2)", cursor: "pointer" }}>Cancel</button>
-                      <button onClick={() => {
+                      <button onClick={async () => {
                         if (resetConfirm === "month") {
                           if (resetMonthTarget) {
                             await deleteLogsFromSupabase({ monthPrefix: resetMonthTarget });
