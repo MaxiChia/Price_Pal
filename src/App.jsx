@@ -1,4 +1,9 @@
 import { useState, useEffect, useRef } from "react";
+import { createClient } from "@supabase/supabase-js";
+
+const SUPABASE_URL = "https://hnwxehnqujsrxufmyiqx.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhud3hlaG5xdWpzcnh1Zm15aXF4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0NjM0MTksImV4cCI6MjA5NjAzOTQxOX0.B_wvBK9RCQPOoudLQ4qyDNcsDEfJWGBq2jYrj72Zn9A";
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // ─── CONSTANTS ───────────────────────────────────────────────────────────────
 
@@ -718,7 +723,7 @@ const PRICE_HISTORY = [
 // ─── MAIN APP ─────────────────────────────────────────────────────────────────
 
 export default function PriceCheck() {
-  const [phase, setPhase] = useState("splash"); // splash|budget|companion|auth|app
+  const [phase, setPhase] = useState("loading"); // loading|splash|budget|companion|auth|app
   const [budget, setBudget] = useState("");
   const [selectedCompanion, setSelectedCompanion] = useState(null);
   const [isGuest, setIsGuest] = useState(false);
@@ -736,8 +741,122 @@ export default function PriceCheck() {
   const [scanItems, setScanItems] = useState([]);
   const [scanPreviewUrl, setScanPreviewUrl] = useState(null);
   const [scanError, setScanError] = useState(null);
+  const [authLoading, setAuthLoading] = useState(false);
+  const [authError, setAuthError] = useState("");
+  const [user, setUser] = useState(null);
   const cameraRef = useRef(null);
   const uploadRef = useRef(null);
+
+  // ── SUPABASE AUTH LISTENER ──
+  useEffect(() => {
+    // Check existing session on load
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        setUser(session.user);
+        loadUserData(session.user.id);
+      } else {
+        setPhase("splash");
+      }
+    });
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        setUser(session.user);
+      } else {
+        setUser(null);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  // ── LOAD USER DATA FROM SUPABASE ──
+  async function loadUserData(userId) {
+    try {
+      // Load profile
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", userId)
+        .single();
+
+      if (profile) {
+        if (profile.budget) setBudget(String(profile.budget));
+        if (profile.companion) setSelectedCompanion(profile.companion);
+        if (profile.companion_name || profile.companion_color || profile.companion_note) {
+          setCompanionCustom({
+            name: profile.companion_name || "",
+            color: profile.companion_color || "",
+            note: profile.companion_note || "",
+          });
+        }
+      }
+
+      // Load logs
+      const { data: logsData } = await supabase
+        .from("logs")
+        .select("*")
+        .eq("user_id", userId)
+        .order("date", { ascending: false });
+
+      if (logsData) {
+        setLogs(logsData.map(l => ({
+          id: l.id,
+          item: l.item,
+          category: l.category,
+          price: l.price,
+          date: l.date,
+          store: l.store || "",
+          rating: l.rating || null,
+          note: l.note || "",
+        })));
+      }
+
+      // If no companion set yet, go to onboarding
+      if (!profile?.companion) {
+        setPhase("budget");
+      } else {
+        setPhase("app");
+      }
+    } catch (err) {
+      console.error("Error loading user data:", err);
+      setPhase("app");
+    }
+  }
+
+  // ── SAVE PROFILE TO SUPABASE ──
+  async function saveProfile(updates) {
+    if (!user) return;
+    await supabase.from("profiles").upsert({ id: user.id, ...updates });
+  }
+
+  // ── SAVE LOG TO SUPABASE ──
+  async function saveLogToSupabase(log) {
+    if (!user) return log;
+    const { data, error } = await supabase.from("logs").insert({
+      user_id: user.id,
+      item: log.item,
+      category: log.category,
+      price: log.price,
+      date: log.date,
+      store: log.store || null,
+      rating: log.rating || null,
+      note: log.note || null,
+    }).select().single();
+    if (!error && data) return { ...log, id: data.id };
+    return log;
+  }
+
+  // ── DELETE LOGS FROM SUPABASE ──
+  async function deleteLogsFromSupabase(filter) {
+    if (!user) return;
+    let query = supabase.from("logs").delete().eq("user_id", user.id);
+    if (filter?.monthPrefix) {
+      query = query.like("date", `${filter.monthPrefix}%`);
+    }
+    await query;
+  }
   const [scenarioAnswered, setScenarioAnswered] = useState(null);
   const [authMode, setAuthMode] = useState("signup");
   const [authEmail, setAuthEmail] = useState("");
@@ -892,14 +1011,15 @@ export default function PriceCheck() {
     misc: budgetNum * 0.05,
   };
 
-  function handleLogSave() {
+  async function handleLogSave() {
     if (!logForm.item || !logForm.price) return;
     const newLog = { id: Date.now(), ...logForm, price: parseFloat(logForm.price), date: logForm.date || new Date().toISOString().slice(0, 10) };
-    setLogs((prev) => [newLog, ...prev]);
+    const savedLog = await saveLogToSupabase(newLog);
+    setLogs((prev) => [savedLog, ...prev]);
     const cat = CATEGORIES.find((c) => c.id === logForm.category);
     const spent = catSpending[logForm.category] || 0;
     const limit = catBudgets[logForm.category] || budgetNum * 0.1;
-    const pctUsed = Math.round(((spent + newLog.price) / limit) * 100);
+    const pctUsed = Math.round(((spent + savedLog.price) / limit) * 100);
     setInsightCard({
       icon: cat?.icon || "📦",
       title: `${cat?.label || logForm.category} Budget`,
@@ -1033,7 +1153,7 @@ export default function PriceCheck() {
     e.target.value = "";
   }
 
-  function handleScanSave() {
+  async function handleScanSave() {
     if (scanItems.length === 0) return;
     const today = new Date().toISOString().slice(0, 10);
     const newLogs = scanItems.map((item, i) => ({
@@ -1042,11 +1162,12 @@ export default function PriceCheck() {
       price: parseFloat(item.price) || 0,
       date: item.date || today,
     }));
-    setLogs(prev => [...newLogs, ...prev]);
+    const savedLogs = await Promise.all(newLogs.map(l => saveLogToSupabase(l)));
+    setLogs(prev => [...savedLogs, ...prev]);
     setInsightCard({
       icon: "🧾",
       title: "Receipt Logged",
-      msg: `${newLogs.length} item${newLogs.length !== 1 ? "s" : ""} saved from your receipt. Total: $${newLogs.reduce((s, l) => s + l.price, 0).toFixed(2)}`,
+      msg: `${savedLogs.length} item${savedLogs.length !== 1 ? "s" : ""} saved. Total: $${savedLogs.reduce((s, l) => s + l.price, 0).toFixed(2)}`,
     });
     setScanReview(false);
     setScanItems([]);
@@ -1055,12 +1176,73 @@ export default function PriceCheck() {
     setTab("home");
   }
 
-  function handleAuthSubmit() {
-    setIsGuest(false);
-    setPhase("app");
+  async function handleAuthSubmit() {
+    setAuthLoading(true);
+    setAuthError("");
+    try {
+      let result;
+      if (authMode === "signup") {
+        result = await supabase.auth.signUp({ email: authEmail, password: authPass });
+        if (result.error) throw result.error;
+        if (result.data.user && !result.data.session) {
+          setAuthError("Check your email to confirm your account, then log in.");
+          setAuthLoading(false);
+          return;
+        }
+      } else {
+        result = await supabase.auth.signInWithPassword({ email: authEmail, password: authPass });
+        if (result.error) throw result.error;
+      }
+      const u = result.data.user;
+      setUser(u);
+      setIsGuest(false);
+      // Save onboarding choices to profile
+      await supabase.from("profiles").upsert({
+        id: u.id,
+        budget: parseFloat(budget) || 2000,
+        companion: selectedCompanion || "uncle-lim",
+      });
+      await loadUserData(u.id);
+    } catch (err) {
+      setAuthError(err.message || "Something went wrong. Please try again.");
+    }
+    setAuthLoading(false);
+  }
+
+  async function handleGoogleSignIn() {
+    await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo: window.location.origin }
+    });
+  }
+
+  async function handleLogout() {
+    await supabase.auth.signOut();
+    setUser(null);
+    setLogs([]);
+    setBudget("");
+    setSelectedCompanion(null);
+    setCompanionCustom({});
+    setShowProfile(false);
+    setPhase("splash");
   }
 
   const COMPANION_COLORS = ["#C4913A", "#E8A0A0", "#5BA87A", "#7AB0E8", "#C4A46B", "#CF72A0", "#A07DCF"];
+
+  if (phase === "loading") {
+    return (
+      <>
+        <style>{styles}</style>
+        <div className="app">
+          <div className="onboard-wrap">
+            <div style={{ fontSize: 40, marginBottom: 16 }}>💜</div>
+            <div className="onboard-logo">Price Pal</div>
+            <div style={{ marginTop: 20, fontSize: 13, color: "var(--text3)" }}>Loading your data...</div>
+          </div>
+        </div>
+      </>
+    );
+  }
 
   if (phase === "splash") {
     return (
@@ -1074,7 +1256,7 @@ export default function PriceCheck() {
                 <text x="40" y="52" textAnchor="middle" fontSize="32" fill="#1A1200" fontFamily="serif">$</text>
               </svg>
             </div>
-            <div className="onboard-logo">Price Pal</div>
+            <div className="onboard-logo">Price Check</div>
             <div className="onboard-tagline">Your personal inflation tracker and financial companion.</div>
             <button className="btn-primary" onClick={() => setPhase("budget")}>Get Started</button>
           </div>
@@ -1105,7 +1287,10 @@ export default function PriceCheck() {
                   onChange={(e) => setBudget(e.target.value)}
                 />
               </div>
-              <button className="btn-primary" onClick={() => setPhase("companion")} style={{ marginTop: 16 }}>Continue</button>
+              <button className="btn-primary" onClick={async () => {
+                setPhase("companion");
+                if (user) await saveProfile({ budget: parseFloat(budget) || 2000 });
+              }} style={{ marginTop: 16 }}>Continue</button>
             </div>
           </div>
         </div>
@@ -1165,19 +1350,24 @@ export default function PriceCheck() {
               <label className="form-label">Password</label>
               <input className="form-input" type="password" placeholder="••••••••" value={authPass} onChange={e => setAuthPass(e.target.value)} />
             </div>
-            <button className="btn-primary" onClick={handleAuthSubmit}>
-              {authMode === "signup" ? "Create Account" : "Log In"}
+            {authError && (
+              <div style={{ background: "var(--red-bg)", border: "1.5px solid var(--red-mid)", borderRadius: 12, padding: "12px 14px", marginBottom: 14, fontSize: 13, color: "var(--red)", fontWeight: 600 }}>
+                {authError}
+              </div>
+            )}
+            <button className="btn-primary" onClick={handleAuthSubmit} style={{ opacity: authLoading ? 0.7 : 1 }}>
+              {authLoading ? "Please wait..." : authMode === "signup" ? "Create Account" : "Log In"}
             </button>
             <div className="divider-row">
               <div className="divider-line" />
               <div className="divider-text">OR</div>
               <div className="divider-line" />
             </div>
-            <button className="google-btn">
+            <button className="google-btn" onClick={handleGoogleSignIn}>
               <svg width="18" height="18" viewBox="0 0 18 18"><path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" fill="#4285F4"/><path d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z" fill="#34A853"/><path d="M3.964 10.706A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.706V4.962H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.038l3.007-2.332z" fill="#FBBC05"/><path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.962L3.964 6.294C4.672 4.167 6.656 3.58 9 3.58z" fill="#EA4335"/></svg>
               Continue with Google
             </button>
-            <button className="btn-secondary" onClick={() => { setIsGuest(true); setPhase("app"); }}>Maybe later</button>
+            <button className="btn-secondary" onClick={() => { setIsGuest(true); setPhase("app"); setUser(null); }}>Maybe later</button>
             <div style={{ textAlign: "center", marginTop: 20 }}>
               <button style={{ background: "none", border: "none", color: "var(--text3)", fontSize: 13, cursor: "pointer" }} onClick={() => setAuthMode(authMode === "signup" ? "login" : "signup")}>
                 {authMode === "signup" ? "Already have an account? Log in" : "Don't have an account? Sign up"}
@@ -1293,18 +1483,24 @@ export default function PriceCheck() {
                       <button onClick={() => setResetConfirm(null)} style={{ flex: 1, background: "white", border: "1.5px solid var(--border2)", borderRadius: 12, padding: "12px", fontSize: 13, fontWeight: 700, color: "var(--text2)", cursor: "pointer" }}>Cancel</button>
                       <button onClick={() => {
                         if (resetConfirm === "month") {
-                          if (resetMonthTarget) setLogs(prev => prev.filter(l => !l.date.startsWith(resetMonthTarget)));
+                          if (resetMonthTarget) {
+                            await deleteLogsFromSupabase({ monthPrefix: resetMonthTarget });
+                            setLogs(prev => prev.filter(l => !l.date.startsWith(resetMonthTarget)));
+                          }
                           setResetMonthTarget(null);
                         } else if (resetConfirm === "all") {
+                          await deleteLogsFromSupabase({});
                           setLogs([]);
                         } else if (resetConfirm === "full") {
+                          await deleteLogsFromSupabase({});
+                          await supabase.from("profiles").upsert({ id: user?.id, budget: 2000, companion: null });
                           setLogs([]);
                           setBudget("");
                           setSelectedCompanion(null);
                           setCompanionCustom({});
                           setShowProfile(false);
                           setResetConfirm(null);
-                          setPhase("splash");
+                          await handleLogout();
                           return;
                         }
                         setResetConfirm(null);
@@ -1317,7 +1513,7 @@ export default function PriceCheck() {
                 )}
               </div>
 
-              <button className="btn-secondary" style={{ margin: "16px 20px 0" }} onClick={() => { setPhase("splash"); setShowProfile(false); setResetConfirm(null); }}>Log Out</button>
+              <button className="btn-secondary" style={{ margin: "16px 20px 0" }} onClick={handleLogout}>Log Out</button>
             </div>
           </div>
         )}
@@ -1344,7 +1540,15 @@ export default function PriceCheck() {
                 <label className="form-label">Personal Note</label>
                 <input className="form-input" placeholder="e.g. My frugal uncle who never wastes a cent" value={companionCustom.note || ""} onChange={e => setCompanionCustom(p => ({ ...p, note: e.target.value }))} />
               </div>
-              <button className="btn-primary" onClick={() => setShowCompanionEdit(false)}>Save Changes</button>
+              <button className="btn-primary" onClick={async () => {
+                setShowCompanionEdit(false);
+                await saveProfile({
+                  companion: selectedCompanion,
+                  companion_name: companionCustom.name || null,
+                  companion_color: companionCustom.color || null,
+                  companion_note: companionCustom.note || null,
+                });
+              }}>Save Changes</button>
             </div>
           </div>
         )}
@@ -1365,7 +1569,7 @@ export default function PriceCheck() {
         {tab === "home" && (
           <div className="screen">
             <div className="home-header">
-              <div className="home-logo">Price Pal</div>
+              <div className="home-logo">Price Check</div>
               <div className="profile-btn" onClick={() => setShowProfile(true)}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
               </div>
