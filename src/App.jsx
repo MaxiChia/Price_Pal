@@ -722,7 +722,7 @@ const PRICE_HISTORY = [
 
 // ─── MAIN APP ─────────────────────────────────────────────────────────────────
 
-export default function PriceCheck() {
+export default function PricePal() {
   const [phase, setPhase] = useState("loading"); // loading|splash|budget|companion|auth|app
   const [budget, setBudget] = useState("");
   const [selectedCompanion, setSelectedCompanion] = useState(null);
@@ -1253,16 +1253,29 @@ export default function PriceCheck() {
         <style>{styles}</style>
         <div className="app">
           <div className="onboard-wrap">
-            <div style={{ marginBottom: 32, opacity: 0.15 }}>
-              <svg width="80" height="80" viewBox="0 0 80 80">
-                <circle cx="40" cy="40" r="36" fill="#C4913A" />
-                <text x="40" y="52" textAnchor="middle" fontSize="32" fill="#1A1200" fontFamily="serif">$</text>
+            <div style={{ marginBottom: 28 }}>
+              <svg width="96" height="96" viewBox="0 0 96 96" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="48" cy="48" r="48" fill="#EDE8FA"/>
+                <circle cx="48" cy="48" r="36" fill="#C8BCEC"/>
+                <circle cx="48" cy="48" r="24" fill="#7C6BAE"/>
+                {/* Dollar sign */}
+                <text x="48" y="57" textAnchor="middle" fontSize="28" fontWeight="800" fill="white" fontFamily="sans-serif">$</text>
+                {/* Upward arrow spark */}
+                <path d="M 68 24 L 72 16 L 76 24" stroke="#7C6BAE" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+                <line x1="72" y1="16" x2="72" y2="28" stroke="#7C6BAE" strokeWidth="2.5" strokeLinecap="round"/>
+                {/* Small coin */}
+                <circle cx="20" cy="28" r="7" fill="#FAC775" opacity="0.9"/>
+                <text x="20" y="32" textAnchor="middle" fontSize="9" fontWeight="800" fill="white" fontFamily="sans-serif">$</text>
+                {/* Chart line */}
+                <path d="M 16 72 L 26 62 L 36 66 L 46 54" stroke="#A8E6CF" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" fill="none" opacity="0.8"/>
               </svg>
             </div>
-            <div className="onboard-logo">Price Check</div>
+            <div className="onboard-logo">Price Pal</div>
             <div className="onboard-tagline">Your personal inflation tracker and financial companion.</div>
-            <button className="btn-primary" onClick={() => { setAuthMode("signup"); setPhase("auth"); }}>Get Started</button>
-            <button className="btn-secondary" style={{ marginTop: 0 }} onClick={() => { setAuthMode("login"); setPhase("auth"); }}>Log In</button>
+            <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: 10, marginTop: 8 }}>
+              <button className="btn-primary" onClick={() => { setAuthMode("login"); setPhase("auth"); }}>Log In</button>
+              <button className="btn-secondary" style={{ marginTop: 0 }} onClick={() => { setAuthMode("signup"); setPhase("auth"); }}>New User? Sign Up</button>
+            </div>
           </div>
         </div>
       </>
@@ -1350,7 +1363,7 @@ export default function PriceCheck() {
         <style>{styles}</style>
         <div className="app">
           <div className="auth-wrap">
-            <div className="auth-title">{authMode === "signup" ? "Create your account" : "Welcome back"}</div>
+            <div className="auth-title">{authMode === "signup" ? "Sign Up" : "Log In"}</div>
             <div className="auth-sub">{authMode === "login" ? "Log in to access your spending data." : "Your data syncs across all devices when you're logged in."}</div>
             <div className="form-field" style={{ margin: "0 0 14px" }}>
               <label className="form-label">Email</label>
@@ -1366,7 +1379,7 @@ export default function PriceCheck() {
               </div>
             )}
             <button className="btn-primary" onClick={handleAuthSubmit} style={{ opacity: authLoading ? 0.7 : 1 }}>
-              {authLoading ? "Please wait..." : authMode === "signup" ? "Create Account" : "Log In"}
+              {authLoading ? "Please wait..." : authMode === "signup" ? "Sign Up" : "Log In"}
             </button>
             <div className="divider-row">
               <div className="divider-line" />
@@ -1380,7 +1393,7 @@ export default function PriceCheck() {
             <button className="btn-secondary" onClick={() => { setIsGuest(true); setPhase("app"); setUser(null); }}>Maybe later</button>
             <div style={{ textAlign: "center", marginTop: 20 }}>
               <button style={{ background: "none", border: "none", color: "var(--text3)", fontSize: 13, cursor: "pointer" }} onClick={() => setAuthMode(authMode === "signup" ? "login" : "signup")}>
-                {authMode === "login" ? "New here? Create an account" : "Already have an account? Log in"}
+                {authMode === "login" ? "New user? Sign Up" : "Already have an account? Log In"}
               </button>
             </div>
           </div>
@@ -1579,7 +1592,7 @@ export default function PriceCheck() {
         {tab === "home" && (
           <div className="screen">
             <div className="home-header">
-              <div className="home-logo">Price Check</div>
+              <div className="home-logo">Price Pal</div>
               <div className="profile-btn" onClick={() => setShowProfile(true)}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
               </div>
