@@ -632,7 +632,172 @@ const styles = `
     0%, 100% { opacity: 1; }
     50% { opacity: 0.4; }
   }
+
+  @keyframes companion-bounce {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-8px); }
+  }
+
+  @keyframes companion-breathe {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.03); }
+  }
+
+  @keyframes companion-shake {
+    0%, 100% { transform: translateX(0); }
+    15% { transform: translateX(-6px) rotate(-2deg); }
+    30% { transform: translateX(6px) rotate(2deg); }
+    45% { transform: translateX(-4px) rotate(-1deg); }
+    60% { transform: translateX(4px) rotate(1deg); }
+    75% { transform: translateX(-2px); }
+    90% { transform: translateX(2px); }
+  }
+
+  @keyframes companion-tap {
+    0% { transform: scale(1); }
+    30% { transform: scale(0.92) rotate(-3deg); }
+    60% { transform: scale(1.08) rotate(2deg); }
+    100% { transform: scale(1) rotate(0deg); }
+  }
+
+  @keyframes companion-fade-in {
+    from { opacity: 0; transform: translateY(10px) scale(0.95); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  .companion-img-wrap {
+    position: relative;
+    width: 160px;
+    height: 160px;
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .companion-img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    position: absolute;
+    top: 0;
+    left: 0;
+    transition: opacity 0.6s ease-in-out;
+    border-radius: 16px;
+  }
+
+  .companion-img.active { opacity: 1; }
+  .companion-img.inactive { opacity: 0; }
+
+  .companion-bounce {
+    animation: companion-bounce 3s ease-in-out infinite;
+  }
+
+  .companion-breathe {
+    animation: companion-breathe 4s ease-in-out infinite;
+  }
+
+  .companion-shake {
+    animation: companion-shake 0.6s ease-in-out;
+  }
+
+  .companion-tap {
+    animation: companion-tap 0.4s ease-in-out;
+  }
+
+  .mood-badge {
+    position: absolute;
+    bottom: -8px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: white;
+    border: 1.5px solid var(--border2);
+    border-radius: 20px;
+    padding: 3px 12px;
+    font-size: 11px;
+    font-weight: 800;
+    color: var(--primary);
+    white-space: nowrap;
+    box-shadow: var(--shadow);
+  }
 `
+
+// ─── COMPANION IMAGE COMPONENT ───────────────────────────────────────────────
+
+function getCompanionMood(pct) {
+  if (pct >= 70) return "happy";
+  if (pct >= 30) return "worried";
+  return "stressed";
+}
+
+function getMoodLabel(pct) {
+  if (pct >= 90) return "Thriving";
+  if (pct >= 70) return "Healthy";
+  if (pct >= 50) return "Cautious";
+  if (pct >= 30) return "Worried";
+  if (pct >= 10) return "Stressed";
+  return "Critical";
+}
+
+function CompanionImage({ companionId, budgetPct, onClick }) {
+  const [currentMood, setCurrentMood] = useState(getCompanionMood(budgetPct));
+  const [prevMood, setPrevMood] = useState(null);
+  const [isTapping, setIsTapping] = useState(false);
+  const [isShaking, setIsShaking] = useState(false);
+
+  const moodLabel = getMoodLabel(budgetPct);
+
+  useEffect(() => {
+    const newMood = getCompanionMood(budgetPct);
+    if (newMood !== currentMood) {
+      setPrevMood(currentMood);
+      setTimeout(() => {
+        setCurrentMood(newMood);
+        setPrevMood(null);
+      }, 300);
+    }
+    // Shake when budget is critical
+    if (budgetPct < 20) {
+      const interval = setInterval(() => setIsShaking(s => !s), 3000);
+      return () => clearInterval(interval);
+    }
+  }, [budgetPct]);
+
+  function handleTap() {
+    setIsTapping(true);
+    setTimeout(() => setIsTapping(false), 400);
+    if (onClick) onClick();
+  }
+
+  const moods = ["happy", "worried", "stressed"];
+  const animClass = budgetPct < 20
+    ? (isShaking ? "companion-shake" : "companion-breathe")
+    : budgetPct >= 70
+    ? "companion-bounce"
+    : "companion-breathe";
+
+  return (
+    <div
+      className={`companion-img-wrap ${isTapping ? "companion-tap" : animClass}`}
+      onClick={handleTap}
+      style={{ animation: isTapping ? "companion-tap 0.4s ease-in-out" : undefined }}
+    >
+      {moods.map(mood => (
+        <img
+          key={mood}
+          src={`/companions/${companionId}-${mood}.png`}
+          alt={`${companionId} ${mood}`}
+          className={`companion-img ${mood === currentMood ? "active" : "inactive"}`}
+          draggable={false}
+        />
+      ))}
+      <div className="mood-badge" style={{
+        color: budgetPct >= 70 ? "var(--green)" : budgetPct >= 30 ? "var(--orange)" : "var(--red)",
+        borderColor: budgetPct >= 70 ? "var(--green-mid)" : budgetPct >= 30 ? "var(--orange-mid)" : "var(--red-mid)",
+      }}>
+        {moodLabel}
+      </div>
+    </div>
+  );
+}
 
 // ─── DONUT CHART ──────────────────────────────────────────────────────────────
 
@@ -1350,12 +1515,16 @@ export default function PricePal() {
                   className={`companion-card ${selectedCompanion === c.id ? "selected" : ""}`}
                   onClick={() => setSelectedCompanion(c.id)}
                 >
-                  {c.render(75)}
+                  <img
+                    src={`/companions/${c.id}-happy.png`}
+                    alt={c.name}
+                    style={{ width: 90, height: 90, objectFit: "contain", borderRadius: 12 }}
+                  />
                   <div className="companion-name">{c.name}</div>
                   <div className="companion-desc">{c.desc}</div>
                   {selectedCompanion === c.id && (
-                    <div style={{ position: "absolute", top: 10, right: 10, width: 18, height: 18, background: "var(--amber)", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                      <svg width="10" height="10" viewBox="0 0 10 10"><polyline points="1,5 4,8 9,2" stroke="#1A1200" strokeWidth="1.8" fill="none" strokeLinecap="round" /></svg>
+                    <div style={{ position: "absolute", top: 10, right: 10, width: 20, height: 20, background: "var(--primary)", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      <svg width="10" height="10" viewBox="0 0 10 10"><polyline points="1,5 4,8 9,2" stroke="white" strokeWidth="1.8" fill="none" strokeLinecap="round" /></svg>
                     </div>
                   )}
                 </div>
@@ -1437,7 +1606,10 @@ export default function PricePal() {
               </div>
               <div className="profile-row">
                 <span className="profile-row-label">Companion</span>
-                <span className="profile-row-val">{companionCustom.name || companion?.name || "—"}</span>
+                <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <img src={`/companions/${selectedCompanion || "uncle-lim"}-happy.png`} alt="companion" style={{ width: 28, height: 28, objectFit: "contain", borderRadius: 6 }} />
+                  <span className="profile-row-val">{companionCustom.name || companion?.name || "—"}</span>
+                </span>
               </div>
               <div className="profile-row">
                 <span className="profile-row-label">Monthly Budget</span>
@@ -1556,7 +1728,10 @@ export default function PricePal() {
           <div className="modal-overlay" onClick={() => setShowCompanionEdit(false)}>
             <div className="modal-sheet" onClick={e => e.stopPropagation()}>
               <div className="modal-handle" />
-              <div className="modal-title">Customise {companion?.name}</div>
+              <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 20 }}>
+                <img src={`/companions/${selectedCompanion || "uncle-lim"}-happy.png`} alt="companion" style={{ width: 60, height: 60, objectFit: "contain", borderRadius: 12, background: "var(--bg2)" }} />
+                <div className="modal-title" style={{ marginBottom: 0 }}>Customise {companionCustom.name || companion?.name}</div>
+              </div>
               <div className="form-field" style={{ margin: "0 0 14px" }}>
                 <label className="form-label">Nickname</label>
                 <input className="form-input" placeholder={companion?.name} value={companionCustom.name || ""} onChange={e => setCompanionCustom(p => ({ ...p, name: e.target.value }))} />
@@ -1630,10 +1805,14 @@ export default function PricePal() {
 
             <div className="companion-zone">
               <div style={{ position: "relative" }}>
-                {companion ? companion.render(budgetPct) : <UncLimSVG mood={budgetPct} />}
-                <button className="companion-edit-btn" onClick={() => setShowCompanionEdit(true)}>Edit</button>
+                <CompanionImage
+                  companionId={selectedCompanion || "uncle-lim"}
+                  budgetPct={budgetPct}
+                  onClick={() => setShowCompanionEdit(true)}
+                />
+                <button className="companion-edit-btn" onClick={() => setShowCompanionEdit(true)} style={{ top: 4, right: 4 }}>Edit</button>
               </div>
-              <div className="companion-bubble">{companionCustom.note || companionQuote}</div>
+              <div className="companion-bubble" style={{ marginTop: 20 }}>{companionCustom.note || companionQuote}</div>
             </div>
 
             <div className="budget-bar-wrap">
