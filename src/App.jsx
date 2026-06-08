@@ -98,11 +98,20 @@ const DAILY_FACTS = [
 ];
 
 const LESSONS = [
-  { day: 1, module: "Money Foundations", title: "What Money Actually Is", body: "Money is a shared agreement — a token society uses to store and exchange value. Before money, people bartered: a farmer traded rice for shoes. The problem? What if the cobbler didn't need rice? Money solved this by becoming a universal medium everyone accepts. Understanding this matters because money itself has no inherent value. A $50 note in an isolated island means nothing. It only works because millions of people agree it does. This shared agreement is fragile — inflation is what happens when that agreement weakens." },
-  { day: 2, module: "Money Foundations", title: "Where Your Money Actually Goes", body: "Most people wildly underestimate their spending. Studies show people recall only 70% of their expenses when asked to remember them. The rest disappears into what behavioural economists call 'invisible spending' — small, frequent, automated, or emotionally charged purchases that don't stick in memory. Your brain assigns less mental weight to digital transactions than cash. A tap-to-pay for $4.50 barely registers. But 20 of those a month is $90. This is why logging matters: it makes invisible money visible again." },
-  { day: 3, module: "Money Foundations", title: "The Difference Between Price and Value", body: "Price is what you pay. Value is what you get. These are almost never the same number. A $200 pair of shoes worn daily for 5 years costs $0.11 per day. A $50 pair worn 20 times and thrown away costs $2.50 per day. The $200 shoes were the better value. This is the cost-per-use mental model, and applying it consistently changes every purchasing decision. The question isn't 'is this expensive?' It's 'is what I get worth what I give?'" },
-  { day: 4, module: "Money Foundations", title: "How Inflation Silently Shrinks Your Money", body: "Inflation is the gradual increase in the general price level of goods and services. At 3% annual inflation, something costing $100 today costs $134 in 10 years. Your $100 buys less — even if the number in your wallet didn't change. This is why keeping all your money in cash is actually a losing strategy. Sitting still means falling behind. Understanding your personal inflation rate — how much more your specific purchases cost over time — is far more useful than the official CPI figure, which averages across millions of different spending patterns." },
-  { day: 5, module: "Money Foundations", title: "Needs vs Wants vs Wishes", body: "Financial clarity starts with honest categorisation. Needs are non-negotiable: food, shelter, basic transport, healthcare. Wants are things that improve life but aren't survival: Netflix, restaurant meals, new phones. Wishes are aspirational: holidays, luxury items, investment properties. The problem is that marketing exists specifically to blur these lines. A new smartphone feels like a need. Air-conditioning feels like a need in a hot country. Being honest — not harsh, just accurate — about which category each purchase falls into is the foundation of a budget that works." },
+  { day: 1, module: "What Inflation Actually Means", title: "Why tracking your own prices matters", icon: "📈", body: "Singapore's official inflation rate is an average across millions of people. But your inflation rate is personal — it depends entirely on what you buy. If you eat at hawker centres daily, your food inflation might be 15-20% over two years. If your kopi went from $1.20 to $1.50, that's a 25% price hike on that item alone. The CPI doesn't tell you that. Only logging your own purchases does. Price Pal exists because your inflation is not the national average." },
+  { day: 2, module: "Needs vs Wants", title: "The line that quietly decides your savings", icon: "⚖️", body: "Every dollar you spend was either a need or a want. Needs keep you alive and functional: food, transport, rent, healthcare. Wants improve life but aren't survival: bubble tea, new AirPods, GrabFood delivery. The uncomfortable truth is that most lifestyle spending sits in the want column — and that's fine, until wants crowd out savings. The 50/30/20 rule is a starting point: 50% needs, 30% wants, 20% savings. Most Singapore students are closer to 70/30/0." },
+  { day: 3, module: "Emergency Funds", title: "Your financial seat belt", icon: "🪂", body: "An emergency fund is 3-6 months of expenses kept in cash, untouched. Not invested. Not in crypto. Just sitting in a savings account. Why? Because emergencies don't wait for markets to recover. Medical bills, sudden job loss, laptop breaking before exams — these happen. Without a buffer, you borrow at interest or ask family. With one, you handle it quietly. As a student, even $500-1000 set aside changes your stress level dramatically. Start small. Build consistently." },
+  { day: 4, module: "The 50/30/20 Framework", title: "Applied to your real spending", icon: "🥧", body: "Take your monthly income (allowance + part-time). Split it: 50% for needs (food, transport, school), 30% for wants (outings, subscriptions, shopping), 20% straight to savings. The power isn't the exact percentages — it's the act of deciding in advance where money goes. Most people spend first and save what's left. The 50/30/20 method reverses that: save first, spend what remains. Even saving 10% consistently beats saving nothing perfectly." },
+  { day: 5, module: "Compound Interest", title: "The eighth wonder of the world", icon: "✨", body: "If you invest $100/month from age 22 to 32 and then stop completely, you end up with more money at 65 than someone who invests $100/month from age 32 to 65 without stopping. That's compound interest. Your money earns returns. Then those returns earn returns. The key variable is time, not amount. Starting 10 years earlier roughly doubles your outcome. Every month you wait has a real cost. Not investing isn't neutral — it's falling behind." },
+  { day: 6, module: "Investing in Singapore 101", title: "Beginner-friendly, no hype", icon: "🇸🇬", body: "Singapore has two excellent starting points. First, SSBs — Singapore Savings Bonds — issued by the government, zero risk, currently paying around 3% annually. Second, the STI ETF — a fund tracking Singapore's top 30 companies. Buy it through a brokerage like Tiger or Syfe. No stock-picking, no analysis, just broad market exposure. For students, regular small investments into either of these beats leaving money in a savings account earning 0.05%. Start with whatever you can spare monthly." },
+  { day: 7, module: "Buying Your First HDB", title: "The biggest purchase of your life, demystified", icon: "🏠", body: "Most Singapore graduates will buy an HDB flat within 5-8 years of working. The average BTO costs $400,000-600,000. With a 10% downpayment, that's $40,000-60,000 in cash and CPF. Monthly repayments on a 25-year HTO loan run $1,500-2,000. The earlier you understand this, the more deliberately you can save. Your spending habits as a student directly affect your financial position when the BTO ballot comes." },
+  { day: 8, module: "Credit Cards: Tool or Trap", title: "Use them right or they use you", icon: "💳", body: "A credit card used correctly is a free loan and a rewards machine. Pay the full balance every month and you get cashback, miles, or points at zero cost. Miss a payment and the interest rate kicks in — typically 26-28% per annum in Singapore. That's ruinous. The rule is simple: never charge what you can't pay in full that month. Never. Credit cards are not extra money. They're a timing tool." },
+  { day: 9, module: "Insurance Without Overpaying", title: "Protect what matters, skip the rest", icon: "🛡️", body: "You need health insurance. MediShield Life is your base — it covers large hospital bills. An Integrated Shield Plan (IP) upgrades your ward coverage. Beyond that, for students: term life insurance isn't urgent yet, but disability income insurance matters once you're earning. The trap is buying insurance you don't need — investment-linked policies, whole life plans with high commissions — from agents who earn more when you buy more. Understand what you're buying before signing anything." },
+  { day: 10, module: "CPF Mastery", title: "Your forced savings, working harder", icon: "💼", body: "Once you work, 20% of your salary goes to CPF automatically. Your employer adds another 17%. That 37% is split across Ordinary (housing, investments), Special (retirement), and MediSave (medical). Most people ignore CPF until they need it. The smart move: understand the interest rates. OA earns 2.5%, SA earns 4%. Voluntary top-ups to SA are tax-deductible and compound at 4% guaranteed. CPF is one of the best risk-free returns available to Singaporeans." },
+  { day: 11, module: "Negotiating Your Salary", title: "The highest ROI conversation you will ever have", icon: "💬", body: "A $200/month salary difference at 25 compounds over a career to hundreds of thousands in lifetime earnings, CPF, and investment capacity. Most people never negotiate. They accept the first offer because it feels rude to push back. It isn't. Employers expect negotiation. Research market rates on Glassdoor and LinkedIn. Know your number. Ask confidently. The worst they say is no — and you're no worse off. The best case adds $2,400 to your annual income starting day one." },
+  { day: 12, module: "Scams and Phishing", title: "The new biggest threat to your money", icon: "🎣", body: "Singapore lost over $650 million to scams in 2023. The most common: job scams (part-time work that asks you to transfer money), phishing (fake bank SMS with links), and investment scams (guaranteed returns). The warning signs are always the same: urgency, unusual payment methods, requests for OTP or bank credentials. No legitimate employer, bank, or investment platform will ever ask for your OTP. If it feels off, it is. Call the institution directly using their official number." },
+  { day: 13, module: "Lifestyle Inflation", title: "Why raises do not make you richer", icon: "📊", body: "Lifestyle inflation is when your spending rises to match your income, no matter how much you earn. You get a raise. You move to a nicer apartment. You upgrade your phone. You eat out more. Your savings rate stays flat. Studies show people earning $10,000/month often save less proportionally than people earning $3,000/month. The fix is intentional: when income rises, keep fixed expenses flat and redirect the increase to savings and investments. Your lifestyle should grow slower than your income." },
+  { day: 14, module: "Buy Now Pay Later Truths", title: "When interest free is not free", icon: "⚠️", body: "BNPL services like Atome and Pace feel harmless — split into 3 payments, zero interest. But research consistently shows BNPL users spend 20-30% more per transaction than cash users. The pain of payment is removed, so spending decisions feel lighter. Missed payments trigger fees. Multiple BNPL plans running simultaneously are hard to track. The real cost isn't the interest — it's the spending you wouldn't have done if you had to pay upfront. Use BNPL only for planned purchases you've already budgeted for." },
 ];
 
 const SCENARIOS = [
@@ -142,64 +151,72 @@ function getMoodIndex(pct) {
 
 function UncLimSVG({ mood }) {
   const m = getMoodIndex(mood);
-  const sweatDrop = m >= 3;
+  const skinTone = ["#D4A574", "#C99A6E", "#C08858", "#B07848", "#9A6838"][m];
   const eyeClose = m >= 4;
-  const skinTone = m >= 3 ? "#B8825A" : "#C99A6E";
   const expression = [
-    { mouth: "M 38 70 Q 50 76 62 70", brow: "M 36 48 Q 44 44 50 46 M 50 46 Q 56 44 64 48" },
-    { mouth: "M 40 70 Q 50 73 60 70", brow: "M 36 48 Q 44 46 50 47 M 50 47 Q 56 46 64 48" },
-    { mouth: "M 40 72 Q 50 70 60 72", brow: "M 36 46 Q 44 50 50 49 M 50 49 Q 56 50 64 46" },
-    { mouth: "M 38 74 Q 50 69 62 74", brow: "M 34 46 Q 44 52 50 51 M 50 51 Q 56 52 66 46" },
-    { mouth: "M 38 76 Q 50 68 62 76", brow: "M 32 44 Q 44 54 50 53 M 50 53 Q 56 54 68 44" },
+    { mouth: "M 36 70 Q 50 78 64 70", brow: "M 35 50 Q 43 45 50 47 M 50 47 Q 57 45 65 50" },
+    { mouth: "M 38 70 Q 50 75 62 70", brow: "M 35 50 Q 43 47 50 48 M 50 48 Q 57 47 65 50" },
+    { mouth: "M 39 72 Q 50 70 61 72", brow: "M 35 49 Q 43 53 50 51 M 50 51 Q 57 53 65 49" },
+    { mouth: "M 38 74 Q 50 68 62 74", brow: "M 33 47 Q 43 55 50 53 M 50 53 Q 57 55 67 47" },
+    { mouth: "M 37 76 Q 50 67 63 76", brow: "M 31 46 Q 43 57 50 55 M 50 55 Q 57 57 69 46" },
   ][m];
 
   return (
-    <svg viewBox="0 0 100 120" width="100" height="120">
-      {/* Singlet */}
-      <ellipse cx="50" cy="105" rx="30" ry="18" fill="#4A3728" />
-      <rect x="30" y="92" width="40" height="16" rx="4" fill="#3D2E22" />
+    <svg viewBox="0 0 100 130" width="110" height="130">
+      {/* Shadow */}
+      <ellipse cx="50" cy="124" rx="28" ry="5" fill="rgba(0,0,0,0.08)" />
+      {/* Body / Singlet */}
+      <path d="M 20 130 Q 20 100 35 95 L 50 92 L 65 95 Q 80 100 80 130 Z" fill="#E8E0D0" />
+      <path d="M 35 95 L 50 92 L 65 95 Q 62 105 50 108 Q 38 105 35 95 Z" fill="#D4C8B8" />
       {/* Neck */}
-      <rect x="44" y="85" width="12" height="12" rx="4" fill={skinTone} />
-      {/* Head */}
-      <ellipse cx="50" cy="60" rx="26" ry="28" fill={skinTone} />
-      {/* Ears */}
-      <ellipse cx="24" cy="62" rx="5" ry="7" fill={skinTone} />
-      <ellipse cx="76" cy="62" rx="5" ry="7" fill={skinTone} />
-      {/* Wrinkles */}
-      <path d="M 32 55 Q 36 52 38 55" stroke="#A07845" strokeWidth="0.8" fill="none" opacity="0.6" />
-      <path d="M 62 55 Q 64 52 68 55" stroke="#A07845" strokeWidth="0.8" fill="none" opacity="0.6" />
+      <rect x="43" y="84" width="14" height="14" rx="5" fill={skinTone} />
+      {/* Ear left */}
+      <ellipse cx="23" cy="64" rx="6" ry="8" fill={skinTone} />
+      <ellipse cx="23" cy="64" rx="4" ry="6" fill={["#C09060","#B08050","#A07040","#906030","#805020"][m]} />
+      {/* Ear right */}
+      <ellipse cx="77" cy="64" rx="6" ry="8" fill={skinTone} />
+      <ellipse cx="77" cy="64" rx="4" ry="6" fill={["#C09060","#B08050","#A07040","#906030","#805020"][m]} />
+      {/* Head base */}
+      <ellipse cx="50" cy="58" rx="28" ry="30" fill={skinTone} />
+      {/* Hair - grey, receding */}
+      <path d="M 25 48 Q 28 30 50 27 Q 72 30 75 48 Q 65 38 50 36 Q 35 38 25 48 Z" fill="#AAAAAA" />
+      {/* Forehead lines */}
+      <path d="M 36 44 Q 44 41 50 43" stroke={["#B08040","#A07030","#907020","#806010","#705010"][m]} strokeWidth="0.7" fill="none" opacity="0.5" />
+      <path d="M 50 43 Q 56 41 64 44" stroke={["#B08040","#A07030","#907020","#806010","#705010"][m]} strokeWidth="0.7" fill="none" opacity="0.5" />
+      {/* Glasses on forehead */}
+      <rect x="34" y="35" width="13" height="8" rx="3.5" fill="none" stroke="#8B7355" strokeWidth="1.4" />
+      <rect x="53" y="35" width="13" height="8" rx="3.5" fill="none" stroke="#8B7355" strokeWidth="1.4" />
+      <line x1="47" y1="39" x2="53" y2="39" stroke="#8B7355" strokeWidth="1.4" />
+      <line x1="34" y1="39" x2="29" y2="41" stroke="#8B7355" strokeWidth="1.4" />
+      <line x1="66" y1="39" x2="71" y2="41" stroke="#8B7355" strokeWidth="1.4" />
       {/* Eyes */}
       {eyeClose ? (
         <>
-          <path d="M 38 58 Q 43 61 48 58" stroke="#4A3320" strokeWidth="1.5" fill="none" />
-          <path d="M 52 58 Q 57 61 62 58" stroke="#4A3320" strokeWidth="1.5" fill="none" />
+          <path d="M 37 59 Q 43 63 49 59" stroke="#4A3320" strokeWidth="1.8" fill="none" strokeLinecap="round" />
+          <path d="M 51 59 Q 57 63 63 59" stroke="#4A3320" strokeWidth="1.8" fill="none" strokeLinecap="round" />
         </>
       ) : (
         <>
-          <ellipse cx="43" cy="58" rx="5" ry="5.5" fill="white" />
-          <ellipse cx="57" cy="58" rx="5" ry="5.5" fill="white" />
-          <circle cx="44" cy="59" r="3" fill="#2A1A0A" />
-          <circle cx="58" cy="59" r="3" fill="#2A1A0A" />
-          <circle cx="45" cy="58" r="1" fill="white" />
-          <circle cx="59" cy="58" r="1" fill="white" />
+          <ellipse cx="43" cy="59" rx="6" ry="6" fill="white" />
+          <ellipse cx="57" cy="59" rx="6" ry="6" fill="white" />
+          <circle cx="44" cy="60" r="3.5" fill="#2A1505" />
+          <circle cx="58" cy="60" r="3.5" fill="#2A1505" />
+          <circle cx="45" cy="58.5" r="1.2" fill="white" />
+          <circle cx="59" cy="58.5" r="1.2" fill="white" />
         </>
       )}
-      {/* Glasses on forehead */}
-      <rect x="36" y="38" width="11" height="7" rx="3" fill="none" stroke="#8B7355" strokeWidth="1.2" />
-      <rect x="53" y="38" width="11" height="7" rx="3" fill="none" stroke="#8B7355" strokeWidth="1.2" />
-      <line x1="47" y1="41" x2="53" y2="41" stroke="#8B7355" strokeWidth="1.2" />
-      <line x1="36" y1="41" x2="32" y2="42" stroke="#8B7355" strokeWidth="1.2" />
-      <line x1="64" y1="41" x2="68" y2="42" stroke="#8B7355" strokeWidth="1.2" />
-      {/* Hair - sparse grey */}
-      <path d="M 30 46 Q 35 32 50 30 Q 65 32 70 46" fill="#888888" opacity="0.6" />
       {/* Eyebrows */}
-      <path d={expression.brow} stroke="#5A3A1A" strokeWidth="2" fill="none" strokeLinecap="round" />
+      <path d={expression.brow} stroke="#4A3010" strokeWidth="2.2" fill="none" strokeLinecap="round" />
+      {/* Nose */}
+      <path d="M 50 63 Q 46 68 48 70 Q 50 71 52 70 Q 54 68 50 63" fill={["#C08850","#B07840","#A06830","#906020","#805010"][m]} opacity="0.6" />
+      {/* Cheek blush */}
+      <ellipse cx="34" cy="67" rx="7" ry="4" fill={["#E8A070","#D89060","#C88050","#B87040","#A86030"][m]} opacity={m >= 3 ? 0.15 : 0.12} />
+      <ellipse cx="66" cy="67" rx="7" ry="4" fill={["#E8A070","#D89060","#C88050","#B87040","#A86030"][m]} opacity={m >= 3 ? 0.15 : 0.12} />
       {/* Mouth */}
-      <path d={expression.mouth} stroke="#8B5E3C" strokeWidth="1.8" fill="none" strokeLinecap="round" />
-      {/* Sweat */}
-      {sweatDrop && (
-        <ellipse cx="72" cy="52" rx="3" ry="4" fill="#5A8EC4" opacity="0.7" />
-      )}
+      <path d={expression.mouth} stroke={["#8B5530","#7A4820","#6A3A15","#5A2C10","#4A2008"][m]} strokeWidth="2" fill="none" strokeLinecap="round" />
+      {/* Sweat drop */}
+      {m >= 3 && <ellipse cx="74" cy="50" rx="3.5" ry="5" fill="#7AB0E8" opacity="0.75" />}
+      {m >= 4 && <ellipse cx="70" cy="44" rx="2.5" ry="3.5" fill="#7AB0E8" opacity="0.5" />}
     </svg>
   );
 }
@@ -860,6 +877,7 @@ export default function PricePal() {
     await query;
   }
   const [scenarioAnswered, setScenarioAnswered] = useState(null);
+  const [learnLesson, setLearnLesson] = useState(null);
   const [authMode, setAuthMode] = useState("login");
   const [authEmail, setAuthEmail] = useState("");
   const [authPass, setAuthPass] = useState("");
@@ -1637,15 +1655,27 @@ export default function PricePal() {
               </div>
             </div>
 
-            {trackedItems.length > 0 && (
-              <div style={{ margin: "0 16px 12px", display: "flex", alignItems: "center", justifyContent: "space-between", background: "var(--bg2)", border: "1.5px solid var(--border2)", borderRadius: 14, padding: "12px 16px", cursor: "pointer" }} onClick={() => setTab("tracker")}>
-                <div>
-                  <div style={{ fontSize: 12, fontWeight: 800, color: "var(--primary)", marginBottom: 2 }}>📈 PRICE TRACKER</div>
-                  <div style={{ fontSize: 12, color: "var(--text3)" }}>{trackedItems.length} item{trackedItems.length !== 1 ? "s" : ""} being tracked · {priceAlerts.length > 0 ? `${priceAlerts.length} price rise detected` : "no recent increases"}</div>
+            {/* Inflation tracking card — always show, drives core value */}
+            <div onClick={() => setTab("tracker")} style={{ margin: "0 16px 12px", background: trackedItems.length > 0 && personalInflation > 0 ? "rgba(192,68,106,0.06)" : "var(--bg2)", border: `1.5px solid ${trackedItems.length > 0 && personalInflation > 0 ? "var(--red-mid)" : "var(--border2)"}`, borderRadius: 16, padding: "14px 16px", cursor: "pointer" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 11, fontWeight: 800, color: trackedItems.length > 0 ? "var(--red)" : "var(--primary)", letterSpacing: "0.6px", marginBottom: 4 }}>📈 YOUR PERSONAL INFLATION</div>
+                  {trackedItems.length === 0 ? (
+                    <div style={{ fontSize: 13, color: "var(--text2)", fontWeight: 600, lineHeight: 1.4 }}>Log the same item twice to start tracking price changes</div>
+                  ) : (
+                    <>
+                      <div style={{ fontSize: 22, fontWeight: 800, color: personalInflation > 0 ? "var(--red)" : "var(--green)", marginBottom: 2 }}>
+                        {personalInflation > 0 ? "+" : ""}{personalInflation || 0}%
+                      </div>
+                      <div style={{ fontSize: 12, color: "var(--text3)" }}>
+                        {trackedItems.length} item{trackedItems.length !== 1 ? "s" : ""} tracked · {priceAlerts.length > 0 ? `${priceAlerts.length} price rise${priceAlerts.length > 1 ? "s" : ""} detected` : "no recent increases"}
+                      </div>
+                    </>
+                  )}
                 </div>
-                <span style={{ fontSize: 16, color: "var(--text3)" }}>›</span>
+                <span style={{ fontSize: 18, color: "var(--text3)", marginLeft: 8 }}>›</span>
               </div>
-            )}
+            </div>
 
             <div className="daily-fact-card">
               <div className="fact-dot" />
@@ -2077,80 +2107,117 @@ export default function PricePal() {
         {/* ── LEARN TAB ── */}
         {tab === "learn" && (
           <div className="screen">
-            <div style={{ padding: "24px 20px 16px" }}>
-              <div className="screen-title">Learn</div>
-              <div style={{ fontSize: 13, color: "var(--text3)", marginTop: 4 }}>Day 1 of 365 · Money Foundations</div>
-            </div>
+            {learnLesson === null ? (
+              <>
+                {/* LEARN HOME */}
+                <div style={{ padding: "24px 16px 16px" }}>
+                  <div className="screen-title">Learn</div>
+                  <div style={{ fontSize: 13, color: "var(--text3)", marginTop: 4 }}>14 lessons · Daily scenario · Future Self calculator</div>
+                </div>
 
-            <div className="lesson-card">
-              <div className="lesson-header">
-                <span className="lesson-day-badge">Day 1</span>
-                <span className="lesson-module">Money Foundations</span>
-              </div>
-              <div className="lesson-title">{LESSONS[0].title}</div>
-              <div className="lesson-body">{LESSONS[0].body}</div>
-            </div>
+                {/* TODAY'S TIP */}
+                <div style={{ margin: "0 16px 16px", background: "linear-gradient(135deg, var(--primary) 0%, #9B8BC4 100%)", borderRadius: 18, padding: "20px", color: "white" }}>
+                  <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: "0.8px", opacity: 0.8, marginBottom: 8 }}>TODAY'S TIP</div>
+                  <div style={{ fontSize: 18, fontWeight: 800, marginBottom: 8, lineHeight: 1.3 }}>{LESSONS[todayIndex % LESSONS.length].title}</div>
+                  <div style={{ fontSize: 12, opacity: 0.85, lineHeight: 1.6, marginBottom: 16 }}>{LESSONS[todayIndex % LESSONS.length].body.slice(0, 120)}...</div>
+                  <button onClick={() => setLearnLesson(todayIndex % LESSONS.length)} style={{ background: "rgba(255,255,255,0.2)", border: "1.5px solid rgba(255,255,255,0.4)", borderRadius: 10, padding: "10px 18px", color: "white", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
+                    Read Lesson →
+                  </button>
+                </div>
 
-            <div className="scenario-card">
-              <div className="scenario-label">Daily Scenario</div>
-              <div className="scenario-prompt">{SCENARIOS[0].prompt}</div>
-              {SCENARIOS[0].options.map((opt, i) => (
-                <button
-                  key={i}
-                  className={`scenario-option ${scenarioAnswered !== null ? opt.quality : ""}`}
-                  onClick={() => scenarioAnswered === null && setScenarioAnswered(i)}
-                  style={scenarioAnswered !== null && scenarioAnswered !== i && opt.quality !== "best" ? { opacity: 0.5 } : {}}
-                >
-                  {opt.text}
-                </button>
-              ))}
-              {scenarioAnswered !== null && (
-                <>
-                  <div className="explanation-box">{SCENARIOS[0].explanation}</div>
-                  <div className="reflection-box">💭 {SCENARIOS[0].reflection}</div>
-                </>
-              )}
-            </div>
+                {/* DAILY SCENARIO */}
+                <div className="scenario-card" style={{ margin: "0 16px 16px" }}>
+                  <div className="scenario-label">Today's Question · {today.toLocaleDateString("en-SG", { weekday: "short", day: "numeric", month: "short" })}</div>
+                  <div className="scenario-prompt">{SCENARIOS[0].prompt}</div>
+                  {SCENARIOS[0].options.map((opt, i) => (
+                    <button key={i} className={`scenario-option ${scenarioAnswered !== null ? opt.quality : ""}`}
+                      onClick={() => scenarioAnswered === null && setScenarioAnswered(i)}
+                      style={scenarioAnswered !== null && scenarioAnswered !== i && opt.quality !== "best" ? { opacity: 0.5 } : {}}>
+                      {opt.text}
+                    </button>
+                  ))}
+                  {scenarioAnswered !== null && (
+                    <>
+                      <div className="explanation-box">{SCENARIOS[0].explanation}</div>
+                      <div className="reflection-box">💭 {SCENARIOS[0].reflection}</div>
+                    </>
+                  )}
+                </div>
 
-            <div style={{ padding: "0 20px 8px" }}>
-              <div style={{ fontFamily: "'Fredoka One'", fontSize: 17, color: "var(--text)", marginBottom: 4 }}>Future Self Calculator</div>
-              <div style={{ fontSize: 12, color: "var(--text3)", marginBottom: 16, lineHeight: 1.5 }}>If you invested your average monthly overspend of $94 at 7% annual return:</div>
-            </div>
-
-            <div className="future-calc">
-              <div className="future-result-cards">
-                {[{ y: 5, val: 658 }, { y: 10, val: 1553 }, { y: 20, val: 4909 }].map(r => (
-                  <div key={r.y} className="future-result">
-                    <div className="future-result-years">{r.y} YRS</div>
-                    <div className="future-result-val">${r.val.toLocaleString()}</div>
+                {/* LESSON LIST */}
+                <div style={{ padding: "0 16px 8px" }}>
+                  <div style={{ fontSize: 14, fontWeight: 800, color: "var(--text)", marginBottom: 14 }}>All Lessons</div>
+                </div>
+                {LESSONS.map((lesson, i) => (
+                  <div key={i} onClick={() => setLearnLesson(i)} style={{ margin: "0 16px 8px", background: "white", border: "1.5px solid var(--border)", borderRadius: 14, padding: "14px 16px", display: "flex", alignItems: "center", gap: 14, cursor: "pointer", boxShadow: "var(--shadow)" }}>
+                    <div style={{ width: 40, height: 40, borderRadius: 12, background: "var(--bg2)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, flexShrink: 0 }}>{lesson.icon}</div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 13, fontWeight: 800, color: "var(--text)", marginBottom: 2 }}>{lesson.module}</div>
+                      <div style={{ fontSize: 11, color: "var(--text3)", fontWeight: 500 }}>{lesson.title}</div>
+                    </div>
+                    <div style={{ width: 28, height: 28, borderRadius: 8, background: "var(--bg2)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                      <span style={{ fontSize: 14, color: "var(--primary)", fontWeight: 700 }}>›</span>
+                    </div>
                   </div>
                 ))}
-              </div>
-              <div className="future-motivate">$94/month quietly invested becomes real wealth. The boring choice pays the most.</div>
-            </div>
 
-            <div style={{ padding: "0 20px 8px" }}>
-              <div style={{ fontFamily: "'Fredoka One'", fontSize: 17, color: "var(--text)", marginBottom: 14 }}>Lesson Calendar</div>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 6 }}>
-                {Array.from({ length: 30 }).map((_, i) => (
-                  <div key={i} style={{
-                    width: "100%",
-                    aspectRatio: "1",
-                    borderRadius: 8,
-                    background: i === 0 ? "var(--amber)" : i < 0 ? "rgba(91,168,122,0.3)" : "var(--bg3)",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontSize: 10,
-                    fontWeight: 700,
-                    color: i === 0 ? "#1A1200" : "var(--text3)",
-                    border: i === 0 ? "none" : "1px solid var(--border)",
-                  }}>
-                    {i + 1}
+                {/* FUTURE SELF CALCULATOR */}
+                <div style={{ padding: "20px 16px 8px" }}>
+                  <div style={{ fontSize: 14, fontWeight: 800, color: "var(--text)", marginBottom: 4 }}>✨ Future Self Calculator</div>
+                  <div style={{ fontSize: 12, color: "var(--text3)", marginBottom: 14, lineHeight: 1.5 }}>
+                    {totalSpent > 0
+                      ? `Your average monthly spend is $${totalSpent.toFixed(0)}. If your overspend was invested at 7% annually:`
+                      : "Start logging to see your personalised future projection."}
                   </div>
-                ))}
-              </div>
-            </div>
+                </div>
+                <div className="future-calc" style={{ margin: "0 16px 20px" }}>
+                  {(() => {
+                    const monthly = Math.max(50, totalSpent * 0.1);
+                    const calc = (m, years) => Math.round(m * ((Math.pow(1 + 0.07/12, years*12) - 1) / (0.07/12)));
+                    return (
+                      <>
+                        <div style={{ fontSize: 24, fontWeight: 800, color: "var(--primary)", marginBottom: 4 }}>${monthly.toFixed(0)}<span style={{ fontSize: 13, fontWeight: 500, color: "var(--text3)" }}>/month redirected</span></div>
+                        <div style={{ fontSize: 12, color: "var(--text3)", marginBottom: 14 }}>Invested at 7% annual return becomes...</div>
+                        <div className="future-result-cards">
+                          {[5, 10, 20].map(y => (
+                            <div key={y} className="future-result">
+                              <div className="future-result-years">{y} YRS</div>
+                              <div className="future-result-val">${calc(monthly, y).toLocaleString()}</div>
+                            </div>
+                          ))}
+                        </div>
+                        <div className="future-motivate">Small leaks redirected become real wealth. Start anywhere.</div>
+                      </>
+                    );
+                  })()}
+                </div>
+              </>
+            ) : (
+              <>
+                {/* INDIVIDUAL LESSON VIEW */}
+                <div className="screen-header">
+                  <div className="back-btn" onClick={() => setLearnLesson(null)}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15 18 9 12 15 6"/></svg>
+                  </div>
+                  <div className="screen-title">{LESSONS[learnLesson].icon} Lesson {learnLesson + 1}</div>
+                </div>
+                <div style={{ margin: "0 16px 16px", background: "white", border: "1.5px solid var(--border)", borderRadius: 18, overflow: "hidden", boxShadow: "var(--shadow)" }}>
+                  <div style={{ background: "var(--bg2)", padding: "16px 18px 14px", borderBottom: "1.5px solid var(--border)" }}>
+                    <div style={{ fontSize: 11, fontWeight: 800, color: "var(--text3)", letterSpacing: "0.6px", marginBottom: 6 }}>{LESSONS[learnLesson].module.toUpperCase()}</div>
+                    <div style={{ fontSize: 20, fontWeight: 800, color: "var(--text)", lineHeight: 1.3 }}>{LESSONS[learnLesson].title}</div>
+                  </div>
+                  <div style={{ padding: "18px 18px 20px", fontSize: 15, color: "var(--text2)", lineHeight: 1.8, fontWeight: 500 }}>{LESSONS[learnLesson].body}</div>
+                </div>
+                <div style={{ display: "flex", gap: 10, padding: "0 16px 20px" }}>
+                  {learnLesson > 0 && (
+                    <button onClick={() => setLearnLesson(l => l - 1)} className="btn-secondary" style={{ flex: 1, margin: 0, padding: "12px" }}>← Previous</button>
+                  )}
+                  {learnLesson < LESSONS.length - 1 && (
+                    <button onClick={() => setLearnLesson(l => l + 1)} className="btn-primary" style={{ flex: 1, padding: "12px" }}>Next →</button>
+                  )}
+                </div>
+              </>
+            )}
           </div>
         )}
 
