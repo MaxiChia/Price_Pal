@@ -1245,17 +1245,18 @@ export default function PricePal() {
       const today = new Date().toISOString().slice(0, 10);
       const lines = text.split("\n").map(l => l.trim()).filter(Boolean);
 
-      // Try to extract date from receipt
+      // Try to extract date from receipt — but only use it if it's current month
       let receiptDate = today;
       for (const line of lines) {
         const dateMatch = line.match(/(\d{2})[\/\-](\d{2})[\/\-](\d{4})/);
         if (dateMatch) {
-          receiptDate = `${dateMatch[3]}-${dateMatch[2]}-${dateMatch[1]}`;
+          const parsed = `${dateMatch[3]}-${dateMatch[2]}-${dateMatch[1]}`;
+          if (parsed.startsWith(currentMonthStr)) receiptDate = parsed;
           break;
         }
         const dateMatch2 = line.match(/(\d{4})[\/\-](\d{2})[\/\-](\d{2})/);
         if (dateMatch2) {
-          receiptDate = dateMatch2[0];
+          if (dateMatch2[0].startsWith(currentMonthStr)) receiptDate = dateMatch2[0];
           break;
         }
       }
@@ -2177,6 +2178,31 @@ export default function PricePal() {
               })}
             </div>
             </>)}
+
+            <div style={{ padding: "8px 20px 0" }}>
+              <div style={{ fontFamily: "'Fredoka One'", fontSize: 17, color: "var(--text)", marginBottom: 12 }}>All Purchases</div>
+            </div>
+            <div style={{ margin: "0 16px 16px", background: "white", borderRadius: 16, border: "1.5px solid var(--border2)", overflow: "hidden", boxShadow: "var(--shadow)" }}>
+              {viewMonthLogs.length === 0 ? (
+                <div style={{ padding: "20px", textAlign: "center", color: "var(--text3)", fontSize: 13 }}>No purchases logged for {MONTH_NAMES[viewMonth]}.</div>
+              ) : (
+                [...viewMonthLogs].sort((a, b) => new Date(b.date) - new Date(a.date)).map((log, idx) => {
+                  const cat = CATEGORIES.find(c => c.id === log.category);
+                  return (
+                    <div key={log.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 16px", borderBottom: idx < viewMonthLogs.length - 1 ? "1px solid var(--border)" : "none" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 10, flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 20, flexShrink: 0 }}>{cat?.icon || "🛍️"}</div>
+                        <div style={{ minWidth: 0 }}>
+                          <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{log.item}</div>
+                          <div style={{ fontSize: 11, color: "var(--text3)", marginTop: 2 }}>{log.store ? `${log.store} · ` : ""}{log.date}</div>
+                        </div>
+                      </div>
+                      <div style={{ fontSize: 15, fontWeight: 800, color: "var(--primary)", flexShrink: 0, marginLeft: 8 }}>${parseFloat(log.price).toFixed(2)}</div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
 
             <div style={{ padding: "8px 20px 0" }}>
               <div style={{ fontFamily: "'Fredoka One'", fontSize: 17, color: "var(--text)", marginBottom: 12 }}>Where your money quietly goes</div>
