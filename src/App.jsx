@@ -450,6 +450,9 @@ const styles = `
   .companion-card { background: white; border: 1.5px solid var(--border2); border-radius: 18px; padding: 20px 12px 16px; cursor: pointer; transition: all 0.2s; display: flex; flex-direction: column; align-items: center; text-align: center; position: relative; box-shadow: var(--shadow); }
   .companion-card.selected { border-color: var(--primary); background: var(--bg2); box-shadow: 0 4px 20px rgba(124,107,174,0.2); }
   .companion-card:last-child { grid-column: 1 / -1; max-width: 180px; margin: 0 auto; }
+  .companion-switcher { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-top: 8px; }
+  .companion-switcher .companion-card { padding: 10px 6px 8px; border-radius: 14px; }
+  .companion-switcher .companion-card:last-child { grid-column: unset; max-width: unset; margin: 0; }
   .companion-name { font-size: 15px; font-weight: 800; color: var(--text); margin-top: 8px; }
   .companion-desc { font-size: 11px; color: var(--text3); margin-top: 4px; line-height: 1.4; }
 
@@ -1738,12 +1741,11 @@ export default function PricePal() {
 
               <div className="form-field" style={{ margin: "0 0 16px" }}>
                 <label className="form-label">Switch Companion</label>
-                <div className="companion-grid" style={{ gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginTop: 8, marginBottom: 0 }}>
+                <div className="companion-switcher">
                   {COMPANIONS.map(c => (
                     <div
                       key={c.id}
                       className={`companion-card ${selectedCompanion === c.id ? "selected" : ""}`}
-                      style={{ padding: "10px 6px 8px", borderRadius: 14 }}
                       onClick={() => {
                         setSelectedCompanion(c.id);
                         setCompanionCustom(p => ({ ...p, name: "" }));
