@@ -926,6 +926,7 @@ export default function PricePal() {
   const [scanItems, setScanItems] = useState([]);
   const [scanPreviewUrl, setScanPreviewUrl] = useState(null);
   const [scanError, setScanError] = useState(null);
+  const [expandedCat, setExpandedCat] = useState(null);
   const [authLoading, setAuthLoading] = useState(false);
   const [authError, setAuthError] = useState("");
   const [user, setUser] = useState(null);
@@ -2157,14 +2158,19 @@ export default function PricePal() {
                 const pct = Math.round((spent / limit) * 100);
                 const status = pct < 80 ? "on-track" : pct < 100 ? "watch-out" : "overspending";
                 const statusLabel = pct < 80 ? "On Track" : pct < 100 ? "Watch Out" : "Overspending";
+                const isOpen = expandedCat === cat.id;
+                const catLogs = [...viewMonthLogs].filter(l => l.category === cat.id).sort((a, b) => new Date(b.date) - new Date(a.date));
                 return (
-                  <div key={cat.id} className="cat-card">
+                  <div key={cat.id} className="cat-card" style={{ cursor: "pointer" }} onClick={() => setExpandedCat(isOpen ? null : cat.id)}>
                     <div className="cat-card-row">
                       <div className="cat-card-name">
                         <span style={{ fontSize: 16 }}>{cat.icon}</span>
                         <span style={{ color: cat.color }}>{cat.label}</span>
                       </div>
-                      <div className="cat-card-amount">${spent.toFixed(2)}</div>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <div className="cat-card-amount">${spent.toFixed(2)}</div>
+                        <span style={{ fontSize: 12, color: "var(--text3)", display: "inline-block", transform: isOpen ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s" }}>▾</span>
+                      </div>
                     </div>
                     <div className="cat-bar-track">
                       <div className="cat-bar-fill" style={{ width: `${Math.min(100, pct)}%`, background: cat.color }} />
@@ -2173,36 +2179,26 @@ export default function PricePal() {
                       <span style={{ fontSize: 11, color: "var(--text3)" }}>{pct}% of budget</span>
                       <span className={`status-tag ${status}`}>{statusLabel}</span>
                     </div>
+                    {isOpen && (
+                      <div style={{ marginTop: 12, borderTop: "1px solid var(--border)", paddingTop: 8 }} onClick={e => e.stopPropagation()}>
+                        {catLogs.length === 0 ? (
+                          <div style={{ fontSize: 13, color: "var(--text3)", textAlign: "center", padding: "8px 0" }}>No items logged.</div>
+                        ) : catLogs.map((log, idx) => (
+                          <div key={log.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: idx < catLogs.length - 1 ? "1px solid var(--border)" : "none" }}>
+                            <div style={{ minWidth: 0 }}>
+                              <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{log.item}</div>
+                              <div style={{ fontSize: 11, color: "var(--text3)", marginTop: 2 }}>{log.store ? `${log.store} · ` : ""}{log.date}</div>
+                            </div>
+                            <div style={{ fontSize: 14, fontWeight: 800, color: "var(--primary)", flexShrink: 0, marginLeft: 12 }}>${parseFloat(log.price).toFixed(2)}</div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 );
               })}
             </div>
             </>)}
-
-            <div style={{ padding: "8px 20px 0" }}>
-              <div style={{ fontFamily: "'Fredoka One'", fontSize: 17, color: "var(--text)", marginBottom: 12 }}>All Purchases</div>
-            </div>
-            <div style={{ margin: "0 16px 16px", background: "white", borderRadius: 16, border: "1.5px solid var(--border2)", overflow: "hidden", boxShadow: "var(--shadow)" }}>
-              {viewMonthLogs.length === 0 ? (
-                <div style={{ padding: "20px", textAlign: "center", color: "var(--text3)", fontSize: 13 }}>No purchases logged for {MONTH_NAMES[viewMonth]}.</div>
-              ) : (
-                [...viewMonthLogs].sort((a, b) => new Date(b.date) - new Date(a.date)).map((log, idx) => {
-                  const cat = CATEGORIES.find(c => c.id === log.category);
-                  return (
-                    <div key={log.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 16px", borderBottom: idx < viewMonthLogs.length - 1 ? "1px solid var(--border)" : "none" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 10, flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: 20, flexShrink: 0 }}>{cat?.icon || "🛍️"}</div>
-                        <div style={{ minWidth: 0 }}>
-                          <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{log.item}</div>
-                          <div style={{ fontSize: 11, color: "var(--text3)", marginTop: 2 }}>{log.store ? `${log.store} · ` : ""}{log.date}</div>
-                        </div>
-                      </div>
-                      <div style={{ fontSize: 15, fontWeight: 800, color: "var(--primary)", flexShrink: 0, marginLeft: 8 }}>${parseFloat(log.price).toFixed(2)}</div>
-                    </div>
-                  );
-                })
-              )}
-            </div>
 
             <div style={{ padding: "8px 20px 0" }}>
               <div style={{ fontFamily: "'Fredoka One'", fontSize: 17, color: "var(--text)", marginBottom: 12 }}>Where your money quietly goes</div>
