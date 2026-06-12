@@ -1730,8 +1730,32 @@ export default function PricePal() {
               <div className="modal-handle" />
               <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 20 }}>
                 <img src={`/companions/${selectedCompanion || "uncle-lim"}-happy.png`} alt="companion" style={{ width: 60, height: 60, objectFit: "contain", borderRadius: 12, background: "var(--bg2)" }} />
-                <div className="modal-title" style={{ marginBottom: 0 }}>Customise {companionCustom.name || companion?.name}</div>
+                <div>
+                  <div className="modal-title" style={{ marginBottom: 2 }}>Customise Companion</div>
+                  <div style={{ fontSize: 13, color: "var(--text3)" }}>{companionCustom.name || COMPANIONS.find(c => c.id === selectedCompanion)?.name}</div>
+                </div>
               </div>
+
+              <div className="form-field" style={{ margin: "0 0 16px" }}>
+                <label className="form-label">Switch Companion</label>
+                <div className="companion-grid" style={{ gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginTop: 8, marginBottom: 0 }}>
+                  {COMPANIONS.map(c => (
+                    <div
+                      key={c.id}
+                      className={`companion-card ${selectedCompanion === c.id ? "selected" : ""}`}
+                      style={{ padding: "10px 6px 8px", borderRadius: 14 }}
+                      onClick={() => {
+                        setSelectedCompanion(c.id);
+                        setCompanionCustom(p => ({ ...p, name: "" }));
+                      }}
+                    >
+                      <img src={`/companions/${c.id}-happy.png`} alt={c.name} style={{ width: 44, height: 44, objectFit: "contain" }} />
+                      <div className="companion-name" style={{ fontSize: 11, marginTop: 4 }}>{c.name}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
               <div className="form-field" style={{ margin: "0 0 14px" }}>
                 <label className="form-label">Nickname</label>
                 <input className="form-input" placeholder={companion?.name} value={companionCustom.name || ""} onChange={e => setCompanionCustom(p => ({ ...p, name: e.target.value }))} />
