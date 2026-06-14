@@ -1168,7 +1168,19 @@ export default function PricePal() {
       return { item, stores: storeData };
     });
 
-  // Weekly spending
+  // Food Intelligence — Best Value: rated food items ranked by rating-per-dollar
+  const foodBestValue = logs
+    .filter(l => l.category === "food" && l.rating)
+    .map(l => ({ ...l, value: l.rating / (l.price || 1) }))
+    .sort((a, b) => b.value - a.value)
+    .slice(0, 2);
+
+  // Food Intelligence — Price Creep: food items whose price has gone up over time
+  const foodPriceCreep = trackedItems
+    .filter(t => t.category === "food" && t.trend === "up")
+    .sort((a, b) => (b.diff / b.first) - (a.diff / a.first));
+
+
   const getWeekStart = (d) => { const dt = new Date(d); dt.setDate(dt.getDate() - dt.getDay()); return dt.toISOString().slice(0, 10); };
   const thisWeekStart = getWeekStart(today.toISOString().slice(0, 10));
   const lastWeekDate = new Date(today); lastWeekDate.setDate(today.getDate() - 7);
@@ -2220,21 +2232,31 @@ export default function PricePal() {
             </div>
             <div className="intel-card">
               <div className="intel-title">Best Value</div>
-              <div className="intel-row">
-                <span className="intel-name">Chicken Rice @ Tian Tian</span>
-                <span className="intel-detail">Rating 9 · $5.50</span>
-              </div>
-              <div className="intel-row">
-                <span className="intel-name">Kopi O @ Uncle's Stall</span>
-                <span className="intel-detail">Rating 8 · $1.50</span>
-              </div>
+              {foodBestValue.length === 0 ? (
+                <div style={{ fontSize: 13, color: "var(--text3)", padding: "6px 0" }}>Rate a few food purchases to see your best-value picks here.</div>
+              ) : foodBestValue.map((l, i) => (
+                <div className="intel-row" key={l.id} style={{ flexDirection: "column", alignItems: "flex-start", gap: 2, borderBottom: i < foodBestValue.length - 1 ? "1px solid var(--border)" : "none" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", width: "100%" }}>
+                    <span className="intel-name">{l.item}{l.store ? ` @ ${l.store}` : ""}</span>
+                    <span className="intel-detail">Rating {l.rating} · ${l.price.toFixed(2)}</span>
+                  </div>
+                  <span style={{ fontSize: 11, color: "var(--text3)" }}>Logged {l.date}</span>
+                </div>
+              ))}
             </div>
             <div className="intel-card" style={{ marginBottom: 20 }}>
               <div className="intel-title">Price Creep Detected</div>
-              <div className="intel-row">
-                <span className="intel-name" style={{ color: "var(--red)" }}>Kopi O</span>
-                <span className="intel-detail">Up twice in 3 months</span>
-              </div>
+              {foodPriceCreep.length === 0 ? (
+                <div style={{ fontSize: 13, color: "var(--text3)", padding: "6px 0" }}>No price increases detected yet for repeated food items.</div>
+              ) : foodPriceCreep.map((t, i) => (
+                <div className="intel-row" key={t.name + i} style={{ flexDirection: "column", alignItems: "flex-start", gap: 2, borderBottom: i < foodPriceCreep.length - 1 ? "1px solid var(--border)" : "none" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", width: "100%" }}>
+                    <span className="intel-name" style={{ color: "var(--red)" }}>{t.name}</span>
+                    <span className="intel-detail">${t.first.toFixed(2)} → ${t.last.toFixed(2)}</span>
+                  </div>
+                  <span style={{ fontSize: 11, color: "var(--text3)" }}>{t.dates[0]} → {t.dates[t.dates.length - 1]}</span>
+                </div>
+              ))}
             </div>
           </div>
         )}
