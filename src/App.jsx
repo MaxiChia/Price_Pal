@@ -517,6 +517,13 @@ const styles = `
   .donut-total { font-size: 26px; font-weight: 800; color: var(--text); line-height: 1; }
   .donut-label { font-size: 11px; color: var(--text3); font-weight: 700; letter-spacing: 0.5px; }
 
+  .donut-legend { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; padding: 0 16px 16px; }
+  .legend-item { display: flex; align-items: center; gap: 6px; background: white; border: 1.5px solid var(--border); border-radius: 20px; padding: 5px 12px 5px 8px; font-size: 12px; font-weight: 700; color: var(--text2); cursor: pointer; transition: all 0.2s; box-shadow: var(--shadow); }
+  .legend-item:active { transform: scale(0.97); }
+  .legend-item.active { border-color: var(--primary); background: var(--bg2); }
+  .legend-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+  .legend-pct { color: var(--text3); font-weight: 600; }
+
   .stat-pills { display: flex; gap: 8px; padding: 0 16px; overflow-x: auto; margin-bottom: 16px; }
   .stat-pills::-webkit-scrollbar { display: none; }
   .stat-pill { background: white; border: 1.5px solid var(--border); border-radius: 12px; padding: 12px 16px; flex-shrink: 0; min-width: 100px; box-shadow: var(--shadow); }
@@ -932,6 +939,7 @@ export default function PricePal() {
   const [user, setUser] = useState(null);
   const cameraRef = useRef(null);
   const uploadRef = useRef(null);
+  const catBreakdownRef = useRef(null);
 
   // ── SUPABASE AUTH LISTENER ──
   useEffect(() => {
@@ -2194,6 +2202,10 @@ export default function PricePal() {
               <DonutChart
                 data={CATEGORIES.filter(c => viewCatSpending[c.id]).map(c => ({ ...c, amount: viewCatSpending[c.id] || 0 }))}
                 total={viewMonthTotal}
+                onSelect={(seg) => {
+                  setExpandedCat(seg.id);
+                  catBreakdownRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+                }}
               />
               <div className="donut-center">
                 <div className="donut-total">${viewMonthTotal.toFixed(0)}</div>
@@ -2201,7 +2213,28 @@ export default function PricePal() {
               </div>
             </div>
 
-            <div className="cat-breakdown">
+            <div className="donut-legend">
+              {CATEGORIES.filter(c => viewCatSpending[c.id]).map(cat => {
+                const amt = viewCatSpending[cat.id] || 0;
+                const pct = viewMonthTotal > 0 ? Math.round((amt / viewMonthTotal) * 100) : 0;
+                return (
+                  <div
+                    key={cat.id}
+                    className={`legend-item ${expandedCat === cat.id ? "active" : ""}`}
+                    onClick={() => {
+                      setExpandedCat(expandedCat === cat.id ? null : cat.id);
+                      catBreakdownRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+                    }}
+                  >
+                    <span className="legend-dot" style={{ background: cat.color }} />
+                    <span>{cat.icon} {cat.label}</span>
+                    <span className="legend-pct">{pct}%</span>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="cat-breakdown" ref={catBreakdownRef}>
               {CATEGORIES.filter(c => viewCatSpending[c.id]).map((cat) => {
                 const spent = viewCatSpending[cat.id] || 0;
                 const limit = catBudgets[cat.id] || budgetNum * 0.1;
