@@ -1168,6 +1168,20 @@ export default function PricePal() {
       return { item, stores: storeData };
     });
 
+  const catBudgets = {
+    food: budgetNum * 0.25,
+    groceries: budgetNum * 0.15,
+    transport: budgetNum * 0.12,
+    entertainment: budgetNum * 0.08,
+    travel: budgetNum * 0.05,
+    health: budgetNum * 0.05,
+    shopping: budgetNum * 0.1,
+    "going-out": budgetNum * 0.08,
+    education: budgetNum * 0.05,
+    bills: budgetNum * 0.1,
+    misc: budgetNum * 0.05,
+  };
+
   // Food Intelligence — Best Value: rated food items ranked by rating-per-dollar
   const foodBestValue = logs
     .filter(l => l.category === "food" && l.rating)
@@ -1235,20 +1249,6 @@ export default function PricePal() {
 
   // Get all months that have logs for the month picker in reset
   const logMonths = [...new Set(logs.map(l => l.date.slice(0, 7)))].sort().reverse();
-
-  const catBudgets = {
-    food: budgetNum * 0.25,
-    groceries: budgetNum * 0.15,
-    transport: budgetNum * 0.12,
-    entertainment: budgetNum * 0.08,
-    travel: budgetNum * 0.05,
-    health: budgetNum * 0.05,
-    shopping: budgetNum * 0.1,
-    "going-out": budgetNum * 0.08,
-    education: budgetNum * 0.05,
-    bills: budgetNum * 0.1,
-    misc: budgetNum * 0.05,
-  };
 
   async function handleLogSave() {
     if (!logForm.item || !logForm.price) return;
