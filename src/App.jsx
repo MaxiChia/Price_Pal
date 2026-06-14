@@ -1180,6 +1180,44 @@ export default function PricePal() {
     .filter(t => t.category === "food" && t.trend === "up")
     .sort((a, b) => (b.diff / b.first) - (a.diff / a.first));
 
+  // Overspend Watch — categories at/over budget this month, with tailored tips
+  const OVERSPEND_TIPS = {
+    food: amt => `Cooking at home a couple more times a week could help close this $${amt} gap.`,
+    groceries: amt => `You're $${amt} over on groceries — planning meals ahead can cut food waste and cost.`,
+    transport: amt => `Transport is $${amt} over budget — a monthly pass may work out cheaper than ad-hoc rides.`,
+    entertainment: amt => `Entertainment is $${amt} over budget — review subscriptions you rarely use.`,
+    "going-out": amt => `Going out is $${amt} over — try setting a weekly cap for outings.`,
+    shopping: amt => `Shopping is $${amt} over budget — a 24-hour rule before non-essential buys can help.`,
+    travel: amt => `Travel spending is $${amt} over budget this month.`,
+    health: amt => `Health spending is $${amt} over budget this month.`,
+    education: amt => `Education spending is $${amt} over budget this month.`,
+    bills: amt => `Bills are $${amt} over budget this month.`,
+    misc: amt => `Miscellaneous spending is $${amt} over budget this month.`,
+  };
+  const overspendCats = CATEGORIES
+    .filter(c => viewCatSpending[c.id])
+    .map(c => {
+      const spent = viewCatSpending[c.id] || 0;
+      const limit = catBudgets[c.id] || budgetNum * 0.1;
+      return { ...c, spent, limit, pct: (spent / limit) * 100 };
+    })
+    .filter(c => c.pct >= 80)
+    .sort((a, b) => b.pct - a.pct)
+    .slice(0, 2);
+
+  // Recurring Charges — same item + price logged across 2+ different months (all-time)
+  const recurringMap = {};
+  logs.forEach(l => {
+    const key = `${l.item.toLowerCase().trim()}_${l.price}`;
+    if (!recurringMap[key]) recurringMap[key] = { item: l.item, price: l.price, category: l.category, months: new Set() };
+    recurringMap[key].months.add(l.date.slice(0, 7));
+  });
+  const recurringCharges = Object.values(recurringMap)
+    .filter(r => r.months.size >= 2)
+    .map(r => ({ ...r, monthCount: r.months.size }))
+    .sort((a, b) => b.monthCount - a.monthCount)
+    .slice(0, 3);
+
 
   const getWeekStart = (d) => { const dt = new Date(d); dt.setDate(dt.getDate() - dt.getDay()); return dt.toISOString().slice(0, 10); };
   const thisWeekStart = getWeekStart(today.toISOString().slice(0, 10));
@@ -2217,14 +2255,32 @@ export default function PricePal() {
             </div>
             <div className="intel-card">
               <div className="intel-title">Overspend Watch</div>
-              <div className="intel-row">
-                <span className="intel-name">🍜 Food</span>
-                <span className="intel-detail">Try cooking 2x more per week — saves ~$80/mo</span>
-              </div>
-              <div className="intel-row">
-                <span className="intel-name">🎬 Entertainment</span>
-                <span className="intel-detail">3 subscriptions detected. Review unused ones.</span>
-              </div>
+              {overspendCats.length === 0 ? (
+                <div style={{ fontSize: 13, color: "var(--text3)", padding: "6px 0" }}>Nothing to flag — your spending looks balanced this month.</div>
+              ) : overspendCats.map((c, i) => {
+                const amt = Math.max(0, c.spent - c.limit).toFixed(2);
+                const tip = OVERSPEND_TIPS[c.id] ? OVERSPEND_TIPS[c.id](amt) : `${c.label} is at ${Math.round(c.pct)}% of its budget this month.`;
+                return (
+                  <div className="intel-row" key={c.id} style={{ flexDirection: "column", alignItems: "flex-start", gap: 2, borderBottom: i < overspendCats.length - 1 ? "1px solid var(--border)" : "none" }}>
+                    <span className="intel-name">{c.icon} {c.label}</span>
+                    <span className="intel-detail" style={{ lineHeight: 1.4 }}>{tip}</span>
+                  </div>
+                );
+              })}
+            </div>
+            <div className="intel-card" style={{ marginBottom: 20 }}>
+              <div className="intel-title">Recurring Charges Detected</div>
+              {recurringCharges.length === 0 ? (
+                <div style={{ fontSize: 13, color: "var(--text3)", padding: "6px 0" }}>No recurring charges detected yet — these show up once you log the same item and price across 2+ months.</div>
+              ) : recurringCharges.map((r, i) => {
+                const cat = CATEGORIES.find(c => c.id === r.category);
+                return (
+                  <div className="intel-row" key={r.item + r.price} style={{ borderBottom: i < recurringCharges.length - 1 ? "1px solid var(--border)" : "none" }}>
+                    <span className="intel-name">{cat?.icon || "📦"} {r.item}</span>
+                    <span className="intel-detail">${r.price.toFixed(2)} · {r.monthCount} months</span>
+                  </div>
+                );
+              })}
             </div>
 
             <div style={{ padding: "8px 20px 0" }}>
