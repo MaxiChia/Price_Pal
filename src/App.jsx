@@ -930,7 +930,8 @@ export default function PricePal() {
   const [companionCustom, setCompanionCustom] = useState({});
   const [insightCard, setInsightCard] = useState(null);
   const [logForm, setLogForm] = useState({ item: "", category: "food", price: "", store: "", rating: null, note: "", date: new Date().toISOString().slice(0,10) });
-  const [logMode, setLogMode] = useState("manual");
+  const [logMode, setLogMode] = useState("scan");
+  const [hasSeenIntro, setHasSeenIntro] = useState(false);
   const [scanLoading, setScanLoading] = useState(false);
   const [scanReview, setScanReview] = useState(false);
   const [scanItems, setScanItems] = useState([]);
@@ -1423,7 +1424,7 @@ export default function PricePal() {
     setScanReview(false);
     setScanItems([]);
     setScanPreviewUrl(null);
-    setLogMode("manual");
+    setLogMode("scan");
     setTab("home");
   }
 
@@ -1732,6 +1733,43 @@ export default function PricePal() {
                 <span className="profile-row-val">${budgetNum.toFixed(0)}</span>
               </div>
 
+
+              {/* EXPORT SECTION */}
+              <div style={{ margin: "20px 20px 0", padding: "16px", background: "var(--bg2)", borderRadius: 14, border: "1.5px solid var(--border)" }}>
+                <div style={{ fontSize: 11, fontWeight: 800, color: "var(--text3)", letterSpacing: "0.6px", marginBottom: 12 }}>EXPORT DATA</div>
+                <button onClick={() => {
+                  if (logs.length === 0) return;
+                  const headers = ["Date", "Item", "Category", "Price (SGD)", "Store", "Rating", "Note"];
+                  const rows = [...logs]
+                    .sort((a, b) => new Date(a.date) - new Date(b.date))
+                    .map(l => [
+                      l.date ? `${l.date.slice(8,10)}/${l.date.slice(5,7)}/${l.date.slice(0,4)}` : "",
+                      l.item,
+                      CATEGORIES.find(c => c.id === l.category)?.label || l.category,
+                      parseFloat(l.price).toFixed(2),
+                      l.store || "",
+                      l.rating || "",
+                      l.note || "",
+                    ]);
+                  const csv = [headers, ...rows].map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(",")).join("\n");
+                  const blob = new Blob([csv], { type: "text/csv" });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement("a");
+                  a.href = url;
+                  a.download = `pricepal_logs_${new Date().toISOString().slice(0,10)}.csv`;
+                  a.click();
+                  URL.revokeObjectURL(url);
+                }} style={{ width: "100%", background: "white", border: "1.5px solid var(--border2)", borderRadius: 12, padding: "12px 14px", display: "flex", justifyContent: "space-between", alignItems: "center", cursor: logs.length === 0 ? "not-allowed" : "pointer", opacity: logs.length === 0 ? 0.5 : 1 }}>
+                  <div style={{ textAlign: "left" }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: "var(--primary)" }}>📥 Export All Logs as CSV</div>
+                    <div style={{ fontSize: 11, color: "var(--text3)", marginTop: 2 }}>
+                      {logs.length === 0 ? "No logs yet" : `${logs.length} entries across ${logMonths.length} month${logMonths.length !== 1 ? "s" : ""}`}
+                    </div>
+                  </div>
+                  <span style={{ fontSize: 16, color: "var(--text3)" }}>↓</span>
+                </button>
+              </div>
+
               {/* RESET SECTION */}
               <div style={{ margin: "20px 20px 0", padding: "16px", background: "var(--bg2)", borderRadius: 14, border: "1.5px solid var(--border)" }}>
                 <div style={{ fontSize: 11, fontWeight: 800, color: "var(--text3)", letterSpacing: "0.6px", marginBottom: 12 }}>DATA MANAGEMENT</div>
@@ -1942,6 +1980,37 @@ export default function PricePal() {
               </div>
             )}
 
+            {/* Purpose banner — always visible, one-liner */}
+            <div style={{ margin: "10px 16px 0", background: "linear-gradient(135deg, #F0EBFF, #FFF0F7)", border: "1.5px solid var(--border2)", borderRadius: 14, padding: "10px 14px", display: "flex", alignItems: "center", gap: 10 }}>
+              <span style={{ fontSize: 20 }}>📈</span>
+              <div style={{ fontSize: 13, color: "var(--text2)", lineHeight: 1.5 }}>
+                <span style={{ fontWeight: 700, color: "var(--primary)" }}>Price Pal tracks item-level price creep</span> — not just your spending. Log the same item twice and we'll show you your personal inflation rate.
+              </div>
+            </div>
+
+            {/* First-run explainer — only shown until dismissed */}
+            {!hasSeenIntro && logs.length === 0 && (
+              <div style={{ margin: "10px 16px 0", background: "white", border: "1.5px solid #C4B8E8", borderRadius: 16, padding: "16px" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
+                  <div style={{ fontSize: 14, fontWeight: 800, color: "var(--primary)" }}>👋 How Price Pal works</div>
+                  <button onClick={() => setHasSeenIntro(true)} style={{ background: "none", border: "none", fontSize: 16, color: "var(--text3)", cursor: "pointer", padding: 0, lineHeight: 1 }}>✕</button>
+                </div>
+                {[
+                  { icon: "🧾", text: "Scan a receipt or log a price manually" },
+                  { icon: "🔁", text: "Log the same item again next time you buy it" },
+                  { icon: "📊", text: "We calculate your personal inflation rate automatically" },
+                ].map((s, i) => (
+                  <div key={i} style={{ display: "flex", gap: 10, alignItems: "flex-start", marginBottom: i < 2 ? 8 : 0 }}>
+                    <span style={{ fontSize: 18, flexShrink: 0 }}>{s.icon}</span>
+                    <span style={{ fontSize: 13, color: "var(--text2)", lineHeight: 1.5 }}>{s.text}</span>
+                  </div>
+                ))}
+                <button onClick={() => { setHasSeenIntro(true); setTab("log"); }} style={{ marginTop: 14, width: "100%", background: "var(--primary)", color: "white", border: "none", borderRadius: 12, padding: "11px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
+                  Scan my first receipt →
+                </button>
+              </div>
+            )}
+
             <div className="companion-zone">
               <div style={{ position: "relative" }}>
                 <CompanionImage
@@ -1949,7 +2018,7 @@ export default function PricePal() {
                   budgetPct={budgetPct}
                   onClick={() => setShowCompanionEdit(true)}
                 />
-                <button className="companion-edit-btn" onClick={() => setShowCompanionEdit(true)} style={{ top: 4, right: 4 }}>Edit</button>
+                <button className="companion-edit-btn" onClick={() => setShowCompanionEdit(true)} style={{ top: 4, right: 4 }}>🔄 Change</button>
               </div>
               <div className="companion-bubble" style={{ marginTop: 20 }}>{companionCustom.note || companionQuote}</div>
             </div>
@@ -2035,7 +2104,7 @@ export default function PricePal() {
         {tab === "log" && (
           <div className="screen">
             <div className="screen-header">
-              <div className="back-btn" onClick={() => { setTab("home"); setLogMode("manual"); setScanReview(false); setScanItems([]); setScanPreviewUrl(null); setScanError(null); }}>
+              <div className="back-btn" onClick={() => { setTab("home"); setLogMode("scan"); setScanReview(false); setScanItems([]); setScanPreviewUrl(null); setScanError(null); }}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15 18 9 12 15 6"/></svg>
               </div>
               <div className="screen-title">Log a Purchase</div>
