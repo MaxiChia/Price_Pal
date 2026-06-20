@@ -503,8 +503,11 @@ const styles = `
   .form-input { width: 100%; background: white; border: 1.5px solid var(--border2); border-radius: 12px; padding: 13px 14px; font-family: "Plus Jakarta Sans",sans-serif; font-size: 15px; color: var(--text); outline: none; transition: border-color 0.2s; font-weight: 500; }
   .form-input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(124,107,174,0.1); }
 
-  .category-scroll { display: flex; gap: 8px; overflow-x: auto; padding: 0 16px 4px; margin-bottom: 14px; -webkit-overflow-scrolling: touch; }
-  .category-scroll::-webkit-scrollbar { display: none; }
+  .category-scroll { display: flex; gap: 8px; overflow-x: auto; padding: 4px 16px 8px; margin-bottom: 14px; -webkit-overflow-scrolling: touch; scroll-snap-type: x mandatory; cursor: grab; }
+  .category-scroll:active { cursor: grabbing; }
+  .category-scroll::-webkit-scrollbar { height: 3px; }
+  .category-scroll::-webkit-scrollbar-track { background: transparent; }
+  .category-scroll::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 4px; }
   .cat-chip { display: flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 20px; border: 1.5px solid transparent; background: white; cursor: pointer; white-space: nowrap; font-size: 13px; font-weight: 700; color: var(--text2); transition: all 0.2s; flex-shrink: 0; box-shadow: var(--shadow); }
   .cat-chip.selected { border-color: currentColor; background: var(--bg2); }
 
@@ -926,7 +929,7 @@ export default function PricePal() {
   const [showCompanionEdit, setShowCompanionEdit] = useState(false);
   const [companionCustom, setCompanionCustom] = useState({});
   const [insightCard, setInsightCard] = useState(null);
-  const [logForm, setLogForm] = useState({ item: "", category: "food", price: "", store: "", rating: null, note: "", date: "" });
+  const [logForm, setLogForm] = useState({ item: "", category: "food", price: "", store: "", rating: null, note: "", date: new Date().toISOString().slice(0,10) });
   const [logMode, setLogMode] = useState("manual");
   const [scanLoading, setScanLoading] = useState(false);
   const [scanReview, setScanReview] = useState(false);
@@ -1272,7 +1275,7 @@ export default function PricePal() {
       title: `${cat?.label || logForm.category} Budget`,
       msg: `You've used ${pctUsed}% of your ${cat?.label.toLowerCase()} budget this month.`,
     });
-    setLogForm({ item: "", category: "food", price: "", store: "", rating: null, note: "", date: "" });
+    setLogForm({ item: "", category: "food", price: "", store: "", rating: null, note: "", date: new Date().toISOString().slice(0,10) });
     setTab("home");
   }
 
@@ -1498,29 +1501,79 @@ export default function PricePal() {
       <>
         <style>{styles}</style>
         <div className="app">
-          <div className="onboard-wrap">
-            <div style={{ marginBottom: 28 }}>
-              <svg width="96" height="96" viewBox="0 0 96 96" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <circle cx="48" cy="48" r="48" fill="#EDE8FA"/>
-                <circle cx="48" cy="48" r="36" fill="#C8BCEC"/>
-                <circle cx="48" cy="48" r="24" fill="#7C6BAE"/>
-                {/* Dollar sign */}
-                <text x="48" y="57" textAnchor="middle" fontSize="28" fontWeight="800" fill="white" fontFamily="sans-serif">$</text>
-                {/* Upward arrow spark */}
-                <path d="M 68 24 L 72 16 L 76 24" stroke="#7C6BAE" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
-                <line x1="72" y1="16" x2="72" y2="28" stroke="#7C6BAE" strokeWidth="2.5" strokeLinecap="round"/>
-                {/* Small coin */}
-                <circle cx="20" cy="28" r="7" fill="#FAC775" opacity="0.9"/>
-                <text x="20" y="32" textAnchor="middle" fontSize="9" fontWeight="800" fill="white" fontFamily="sans-serif">$</text>
-                {/* Chart line */}
-                <path d="M 16 72 L 26 62 L 36 66 L 46 54" stroke="#A8E6CF" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" fill="none" opacity="0.8"/>
-              </svg>
-            </div>
-            <div className="onboard-logo">Price Pal</div>
-            <div className="onboard-tagline">Your personal inflation tracker and financial companion.</div>
-            <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: 10, marginTop: 8 }}>
-              <button className="btn-primary" onClick={() => { setAuthMode("login"); setPhase("auth"); }}>Log In</button>
-              <button className="btn-secondary" style={{ marginTop: 0 }} onClick={() => { setAuthMode("signup"); setPhase("auth"); }}>New User? Sign Up</button>
+          <div style={{
+            minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center",
+            justifyContent: "center", padding: "40px 28px 36px",
+            background: "linear-gradient(160deg,#F0EBFF 0%,#FBF8FF 50%,#FFF0F7 100%)",
+            position: "relative", overflow: "hidden"
+          }}>
+            {/* Background blobs */}
+            <div style={{ position: "absolute", top: -80, right: -60, width: 260, height: 260, background: "#DDD6F5", borderRadius: "50%", opacity: 0.5 }} />
+            <div style={{ position: "absolute", bottom: -50, left: -70, width: 220, height: 220, background: "#FFE8F0", borderRadius: "50%", opacity: 0.5 }} />
+
+            <div style={{ position: "relative", zIndex: 1, width: "100%", maxWidth: 400, display: "flex", flexDirection: "column", alignItems: "center" }}>
+              {/* Badge */}
+              <div style={{ background: "#7C6BAE", color: "white", fontSize: 11, fontWeight: 700, padding: "5px 16px", borderRadius: 20, letterSpacing: "0.05em", marginBottom: 24 }}>
+                🇸🇬 Made for students in Singapore
+              </div>
+
+              {/* Logo */}
+              <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 10 }}>
+                <div style={{ width: 52, height: 52, background: "#7C6BAE", borderRadius: 16, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28 }}>💰</div>
+                <div className="onboard-logo" style={{ margin: 0 }}>Price Pal</div>
+              </div>
+
+              {/* Hook line */}
+              <div style={{ fontSize: 16, color: "var(--text2)", textAlign: "center", lineHeight: 1.6, marginBottom: 28, maxWidth: 280 }}>
+                Your kopi costs more than last year.<br />
+                <span style={{ color: "#7C6BAE", fontWeight: 700 }}>Do you know by how much?</span>
+              </div>
+
+              {/* Stat pills */}
+              <div style={{ display: "flex", gap: 8, width: "100%", marginBottom: 20 }}>
+                {[
+                  { num: "+8.2%", lbl: "avg food inflation" },
+                  { num: "$340", lbl: "avg overspend/mo" },
+                  { num: "67%", lbl: "don't track it" },
+                ].map(s => (
+                  <div key={s.lbl} style={{ flex: 1, background: "white", borderRadius: 14, border: "1.5px solid #E0D9F5", padding: "12px 6px", textAlign: "center" }}>
+                    <div style={{ fontSize: 17, fontWeight: 800, color: "#7C6BAE", lineHeight: 1 }}>{s.num}</div>
+                    <div style={{ fontSize: 10, color: "var(--text3)", marginTop: 4, lineHeight: 1.3 }}>{s.lbl}</div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Mini receipt preview */}
+              <div style={{ background: "white", borderRadius: 16, border: "1.5px solid #E0D9F5", padding: "14px 16px", width: "100%", marginBottom: 24, boxShadow: "0 2px 12px rgba(124,107,174,0.08)" }}>
+                {[
+                  { icon: "🍜", name: "Chicken rice", from: "$3.50", to: "$4.50" },
+                  { icon: "☕", name: "Kopi O", from: "$1.20", to: "$1.60" },
+                  { icon: "🚌", name: "Bus ride", from: "$0.99", to: "$1.09" },
+                ].map((row, i, arr) => (
+                  <div key={row.name} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "6px 0", borderBottom: i < arr.length - 1 ? "1px solid #F0EDF9" : "none" }}>
+                    <span style={{ fontSize: 13, color: "#3A3A5C" }}>{row.icon} {row.name}</span>
+                    <span style={{ fontSize: 12, color: "#9999B3" }}>{row.from} <span style={{ color: "#C0526A" }}>→ {row.to}</span></span>
+                  </div>
+                ))}
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 10, paddingTop: 10, borderTop: "1.5px dashed #E0D9F5" }}>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: "#1A1A2E" }}>Your personal inflation</span>
+                  <span style={{ fontSize: 14, fontWeight: 800, color: "#7C6BAE" }}>+14.3%</span>
+                </div>
+              </div>
+
+              {/* CTA buttons */}
+              <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: 10 }}>
+                <button className="btn-primary" style={{ fontSize: 15, padding: "15px" }} onClick={() => { setAuthMode("signup"); setPhase("auth"); }}>
+                  Get Started — It's Free
+                </button>
+                <button className="btn-secondary" style={{ marginTop: 0, fontSize: 15, padding: "14px" }} onClick={() => { setAuthMode("login"); setPhase("auth"); }}>
+                  I already have an account
+                </button>
+              </div>
+
+              <div style={{ fontSize: 11, color: "var(--text3)", textAlign: "center", marginTop: 16 }}>
+                No credit card. No nonsense. Just your prices.
+              </div>
             </div>
           </div>
         </div>
@@ -2104,7 +2157,15 @@ export default function PricePal() {
 
                 <div style={{ margin: "0 0 14px" }}>
                   <div style={{ padding: "0 16px 6px", fontSize: 11, fontWeight: 800, color: "var(--text3)", letterSpacing: "0.8px", textTransform: "uppercase" }}>Category</div>
-                  <div className="category-scroll">
+                  <div className="category-scroll" ref={el => {
+                    if (!el || el._dragBound) return;
+                    el._dragBound = true;
+                    let isDown = false, startX, scrollLeft;
+                    el.addEventListener("mousedown", e => { isDown = true; startX = e.pageX - el.offsetLeft; scrollLeft = el.scrollLeft; });
+                    el.addEventListener("mouseleave", () => { isDown = false; });
+                    el.addEventListener("mouseup", () => { isDown = false; });
+                    el.addEventListener("mousemove", e => { if (!isDown) return; e.preventDefault(); el.scrollLeft = scrollLeft - (e.pageX - el.offsetLeft - startX); });
+                  }}>
                     {CATEGORIES.map((cat) => (
                       <div key={cat.id} className={`cat-chip ${logForm.category === cat.id ? "selected" : ""}`} style={{ color: cat.color }} onClick={() => setLogForm(p => ({ ...p, category: cat.id }))}>
                         <span>{cat.icon}</span> {cat.label}
@@ -2119,8 +2180,29 @@ export default function PricePal() {
                 </div>
 
                 <div className="form-field">
-                  <label className="form-label">Date</label>
-                  <input className="form-input" type="date" value={logForm.date} onChange={e => setLogForm(p => ({ ...p, date: e.target.value }))} />
+                  <label className="form-label">Date <span style={{ fontSize: 11, color: "var(--text3)", fontWeight: 400 }}>(DD/MM/YYYY)</span></label>
+                  <input
+                    className="form-input"
+                    type="text"
+                    placeholder={`${String(new Date().getDate()).padStart(2,"0")}/${String(new Date().getMonth()+1).padStart(2,"0")}/${new Date().getFullYear()}`}
+                    value={logForm.date ? `${logForm.date.slice(8,10)}/${logForm.date.slice(5,7)}/${logForm.date.slice(0,4)}` : ""}
+                    onChange={e => {
+                      const val = e.target.value.replace(/[^\d/]/g, "");
+                      // Auto-insert slashes
+                      let formatted = val;
+                      if (val.length === 2 && !val.includes("/")) formatted = val + "/";
+                      if (val.length === 5 && val.split("/").length === 2) formatted = val + "/";
+                      // Parse to ISO when complete DD/MM/YYYY
+                      const parts = formatted.split("/");
+                      if (parts.length === 3 && parts[2].length === 4) {
+                        const iso = `${parts[2]}-${parts[1].padStart(2,"0")}-${parts[0].padStart(2,"0")}`;
+                        if (!isNaN(new Date(iso))) { setLogForm(p => ({ ...p, date: iso })); return; }
+                      }
+                      // Store raw text temporarily as a display hint
+                      if (formatted.length <= 10) setLogForm(p => ({ ...p, date: formatted.length < 10 ? "" : p.date }));
+                    }}
+                    maxLength={10}
+                  />
                 </div>
 
                 {logForm.category === "food" && (
