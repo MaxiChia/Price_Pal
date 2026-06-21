@@ -927,7 +927,8 @@ export default function PricePal() {
   const [insightCard, setInsightCard] = useState(null);
   const [logForm, setLogForm] = useState({ item: "", category: "food", price: "", store: "", rating: null, note: "", date: new Date().toISOString().slice(0,10) });
   const [logMode, setLogMode] = useState("scan");
-  const [hasSeenIntro, setHasSeenIntro] = useState(false);
+  const [hasSeenIntro, setHasSeenIntroState] = useState(() => localStorage.getItem("pp_seen_intro") === "1");
+  const setHasSeenIntro = (v) => { setHasSeenIntroState(v); if (v) localStorage.setItem("pp_seen_intro", "1"); };
   const [scanLoading, setScanLoading] = useState(false);
   const [scanReview, setScanReview] = useState(false);
   const [scanItems, setScanItems] = useState([]);
@@ -1094,13 +1095,54 @@ export default function PricePal() {
     ? COMPANIONS.find((c) => c.id === selectedCompanion)
     : null;
 
-  const companionQuote = [
-    "Your budget's looking healthy. Keep it up.",
-    "Things are alright. Stay mindful.",
-    "You've spent more than half. Slow down a little.",
-    "Getting tight. Let's watch the next few days carefully.",
-    "You're in the red. Time to stop spending.",
-  ][getMoodIndex(budgetPct)];
+  const COMPANION_QUOTES = {
+    "uncle-lim": [
+      "Solid lah. Keep spending like this, can retire early one.",
+      "Not bad, not bad. Uncle Lim approves. Stay disciplined.",
+      "Eh, halfway already. Don't anyhow spend the rest of the month.",
+      "Walao, going overboard already. Uncle Lim very worried for you.",
+      "Aiyah! Over budget already. Makan at home lah, don't waste money.",
+    ],
+    "bacon": [
+      "Oink! Budget looking pink and healthy. Keep it up! 🐷",
+      "Things are okay! Bacon is happy. Stay on track, friend!",
+      "Hmm... halfway gone. Bacon is starting to sweat a little...",
+      "Bacon is worried now. Maybe skip the bubble tea this week?",
+      "Oh no no no. Budget exploded. Bacon is very stressed. 😰",
+    ],
+    "draco": [
+      "Excellent. Your finances are as strong as dragon scales. 🐉",
+      "All good. Draco sees no reason to breathe fire. Yet.",
+      "Hmm. Budget half gone. Draco is watching your next move closely.",
+      "This is not ideal. Draco is getting a little flame-y.",
+      "BUDGET BREACHED. Draco cannot stay calm. Stop. Spending. Now.",
+    ],
+    "bud": [
+      "Thriving! Your wallet is as healthy as my leaves. 🌱",
+      "Growing steadily. Keep nurturing those savings habits.",
+      "Halfway there... Bud is feeling a little wilted. Be careful.",
+      "Soil is dry. Budget is struggling. Time to cut back.",
+      "Withering... Too much spending. Bud needs you to stop. 🥀",
+    ],
+    "kopi": [
+      "Warm and steady! Kopi is happy with your spending. ☕",
+      "Still warm! Things are alright. Stay mindful, friend.",
+      "Getting lukewarm... Budget halfway. Kopi is a little concerned.",
+      "Going cold. Spending too fast. Kopi doesn't like this.",
+      "Ice cold. Budget blown. Time to brew a new plan. ❄️",
+    ],
+  };
+
+  const moodIdx = getMoodIndex(budgetPct);
+  const companionQuote = selectedCompanion && COMPANION_QUOTES[selectedCompanion]
+    ? COMPANION_QUOTES[selectedCompanion][moodIdx]
+    : [
+      "Your budget's looking healthy. Keep it up.",
+      "Things are alright. Stay mindful.",
+      "You've spent more than half. Slow down a little.",
+      "Getting tight. Let's watch the next few days carefully.",
+      "You're in the red. Time to stop spending.",
+    ][moodIdx];
 
   // Category spending — current month only for home/budget
   const catSpending = {};
@@ -1241,7 +1283,8 @@ export default function PricePal() {
     .slice(0, 3);
 
 
-  const getWeekStart = (d) => { const dt = new Date(d); dt.setDate(dt.getDate() - dt.getDay()); return dt.toISOString().slice(0, 10); };
+  // Fix week to start on Monday (Singapore standard), not Sunday
+  const getWeekStart = (d) => { const dt = new Date(d); const day = dt.getDay(); const diff = (day === 0 ? -6 : 1 - day); dt.setDate(dt.getDate() + diff); return dt.toISOString().slice(0, 10); };
   const thisWeekStart = getWeekStart(today.toISOString().slice(0, 10));
   const lastWeekDate = new Date(today); lastWeekDate.setDate(today.getDate() - 7);
   const lastWeekStart = getWeekStart(lastWeekDate.toISOString().slice(0, 10));
