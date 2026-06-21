@@ -503,12 +503,7 @@ const styles = `
   .form-input { width: 100%; background: white; border: 1.5px solid var(--border2); border-radius: 12px; padding: 13px 14px; font-family: "Plus Jakarta Sans",sans-serif; font-size: 15px; color: var(--text); outline: none; transition: border-color 0.2s; font-weight: 500; }
   .form-input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(124,107,174,0.1); }
 
-  .category-scroll { display: flex; gap: 8px; overflow-x: auto; padding: 4px 16px 10px; margin-bottom: 14px; -webkit-overflow-scrolling: touch; scroll-snap-type: x mandatory; cursor: grab; }
-  .category-scroll:active { cursor: grabbing; }
-  .category-scroll::-webkit-scrollbar { height: 6px; }
-  .category-scroll::-webkit-scrollbar-track { background: var(--bg2); border-radius: 4px; margin: 0 16px; }
-  .category-scroll::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 4px; }
-  .category-scroll::-webkit-scrollbar-thumb:hover { background: var(--primary); }
+  .category-scroll { display: flex; flex-wrap: wrap; gap: 8px; padding: 0 16px 4px; margin-bottom: 14px; }
   .cat-chip { display: flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 20px; border: 1.5px solid transparent; background: white; cursor: pointer; white-space: nowrap; font-size: 13px; font-weight: 700; color: var(--text2); transition: all 0.2s; flex-shrink: 0; box-shadow: var(--shadow); }
   .cat-chip.selected { border-color: currentColor; background: var(--bg2); }
 
@@ -1385,16 +1380,23 @@ export default function PricePal() {
       }
 
       // Extract items with prices - look for lines with a price pattern
-      const skipWords = /subtotal|sub total|total|gst|tax|service|change|cash|visa|card|payment|thank|please|come|again|receipt|invoice|cashier|date|time|qty|amount|item/i;
+      const skipWords = /subtotal|sub.?total|total|gst|tax|service charge|service fee|change|cash|visa|master|mastercard|amex|card|payment|paynow|pay now|grabpay|paylah|nets|ez.?link|ezlink|atm|debit|credit|thank|please|come again|receipt|invoice|cashier|date|time|qty|amount|item|discount|member|linkpoint|voucher|promo|promotion|coupon|rounding|balance|savings|point|reward|staff|reg:|txn:|ref:|table:|order|tel:|phone|fax|addr|address|opening|closing|hour|welcome|enjoy|selamat|have a|visit us|follow us|www\.|\.com|\.sg|@/i;
+      const paymentMethods = /^(cash|visa|master|mastercard|amex|nets|paynow|pay now|grabpay|paylah|ez.?link|ezlink|debit|credit|change|balance due|amount due|amount paid|payment|cheque|check)\b/i;
       const pricePattern = /\$?\s*(\d+\.\d{2})\s*$/;
       const extracted = [];
+      const seenItems = new Set();
 
       for (const line of lines) {
         if (skipWords.test(line)) continue;
+        if (paymentMethods.test(line.trim())) continue;
+        // Skip lines that are purely a price (summary rows like "$46.85")
+        if (/^\$?\d+\.\d{2}$/.test(line.trim())) continue;
         const match = line.match(pricePattern);
         if (match) {
           const price = parseFloat(match[1]);
           if (price <= 0 || price > 9999) continue;
+          // Negative prices = discounts/returns, skip
+          if (line.includes("-$") || line.match(/-\s*\d+\.\d{2}/)) continue;
           // Get item name - remove price, qty patterns, dashes
           let itemName = line
             .replace(pricePattern, "")
@@ -1404,13 +1406,19 @@ export default function PricePal() {
             .replace(/\s+/g, " ")
             .trim();
           if (itemName.length < 2) continue;
+          // Skip if item name looks like a payment method after cleaning
+          if (paymentMethods.test(itemName)) continue;
+          // Deduplicate exact same item+price combos (OCR sometimes double-reads)
+          const dedupeKey = `${itemName.toLowerCase()}_${price}`;
+          if (seenItems.has(dedupeKey)) continue;
+          seenItems.add(dedupeKey);
 
           // Guess category
           let category = "misc";
           const lower = itemName.toLowerCase();
           if (/rice|noodle|chicken|fish|beef|pork|veg|meal|food|mee|laksa|roti|bread|toast|egg|curry|soup|burger|pizza|pasta|sushi|bento|set|lunch|dinner|breakfast|snack|cake|dessert|ice cream|waffle|salad|sandwich/i.test(lower)) category = "food";
           else if (/tea|coffee|kopi|teh|milo|juice|drink|water|beer|wine|coke|pepsi|sprite|soda|smoothie|latte|cappuccino|americano/i.test(lower)) category = "food";
-          else if (/train|mrt|bus|grab|taxi|uber|transport|fare|ez-link|toll/i.test(lower)) category = "transport";
+          else if (/train|mrt|bus|grab|taxi|uber|transport|fare|toll|transit/i.test(lower)) category = "transport";
           else if (/movie|cinema|concert|show|ticket|netflix|spotify|game|entertainment/i.test(lower)) category = "entertainment";
           else if (/medicine|pharmacy|clinic|hospital|doctor|health|vitamin|supplement/i.test(lower)) category = "health";
           else if (/shirt|pants|shoes|clothes|fashion|bag|dress|jacket|accessory/i.test(lower)) category = "shopping";
@@ -2276,18 +2284,10 @@ export default function PricePal() {
                 </div>
 
                 <div style={{ margin: "0 0 14px" }}>
-                  <div style={{ padding: "0 16px 6px", fontSize: 11, fontWeight: 800, color: "var(--text3)", letterSpacing: "0.8px", textTransform: "uppercase" }}>Category</div>
-                  <div className="category-scroll" ref={el => {
-                    if (!el || el._dragBound) return;
-                    el._dragBound = true;
-                    let isDown = false, startX, scrollLeft;
-                    el.addEventListener("mousedown", e => { isDown = true; startX = e.pageX - el.offsetLeft; scrollLeft = el.scrollLeft; });
-                    el.addEventListener("mouseleave", () => { isDown = false; });
-                    el.addEventListener("mouseup", () => { isDown = false; });
-                    el.addEventListener("mousemove", e => { if (!isDown) return; e.preventDefault(); el.scrollLeft = scrollLeft - (e.pageX - el.offsetLeft - startX); });
-                  }}>
+                  <div style={{ padding: "0 16px 8px", fontSize: 11, fontWeight: 800, color: "var(--text3)", letterSpacing: "0.8px", textTransform: "uppercase" }}>Category</div>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 8, padding: "0 16px" }}>
                     {CATEGORIES.map((cat) => (
-                      <div key={cat.id} className={`cat-chip ${logForm.category === cat.id ? "selected" : ""}`} style={{ color: cat.color }} onClick={() => setLogForm(p => ({ ...p, category: cat.id }))}>
+                      <div key={cat.id} className={`cat-chip ${logForm.category === cat.id ? "selected" : ""}`} style={{ color: cat.color, flexShrink: 0 }} onClick={() => setLogForm(p => ({ ...p, category: cat.id }))}>
                         <span>{cat.icon}</span> {cat.label}
                       </div>
                     ))}
