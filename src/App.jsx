@@ -1347,7 +1347,33 @@ export default function PricePal() {
         });
       }
 
-      const { data: { text } } = await window.Tesseract.recognize(ocrBlob, "eng", {
+      // Pre-process image: greyscale + contrast boost for better OCR on dark/angled photos
+      const processedBlob = await new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement("canvas");
+          canvas.width = img.width;
+          canvas.height = img.height;
+          const ctx = canvas.getContext("2d");
+          ctx.drawImage(img, 0, 0);
+          const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+          const d = imageData.data;
+          for (let i = 0; i < d.length; i += 4) {
+            // Greyscale
+            const grey = 0.299 * d[i] + 0.587 * d[i+1] + 0.114 * d[i+2];
+            // Contrast boost: stretch towards black/white
+            const contrast = 1.8;
+            const factor = (259 * (contrast * 255 + 255)) / (255 * (259 - contrast * 255));
+            const boosted = Math.min(255, Math.max(0, factor * (grey - 128) + 128));
+            d[i] = d[i+1] = d[i+2] = boosted;
+          }
+          ctx.putImageData(imageData, 0, 0);
+          canvas.toBlob(resolve, "image/png");
+        };
+        img.src = URL.createObjectURL(ocrBlob);
+      });
+
+      const { data: { text } } = await window.Tesseract.recognize(processedBlob, "eng", {
         logger: () => {}
       });
 
@@ -1486,7 +1512,7 @@ export default function PricePal() {
           rating: null,
           note: ""
         });
-        setScanError("Could not auto-detect items. Please fill in manually below.");
+        setScanError("Could not auto-detect items. Tips: lay the receipt flat, ensure good lighting, and avoid shadows. Fill in manually below or scan again.");
       }
 
       setScanItems(extracted);
