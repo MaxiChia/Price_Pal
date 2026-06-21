@@ -1386,58 +1386,81 @@ export default function PricePal() {
       const extracted = [];
       const seenItems = new Set();
 
-      for (const line of lines) {
-        if (skipWords.test(line)) continue;
-        if (paymentMethods.test(line.trim())) continue;
-        // Skip lines that are purely a price (summary rows like "$46.85")
-        if (/^\$?\d+\.\d{2}$/.test(line.trim())) continue;
-        const match = line.match(pricePattern);
-        if (match) {
-          const price = parseFloat(match[1]);
+      // Strategy 1: Two-line pattern — "Item Name\n  x1 @ $price" (NTUC, FairPrice style)
+      // Look ahead: if current line has no price but next line has "x{n} @ $price", combine them
+      const twoLinePattern = /x\s*\d+\s*@\s*\$?\s*(\d+\.\d{2})/i;
+      for (let i = 0; i < lines.length - 1; i++) {
+        const nameLine = lines[i].trim();
+        const priceLine = lines[i + 1].trim();
+        const twoMatch = priceLine.match(twoLinePattern);
+        if (
+          twoMatch &&
+          !nameLine.match(pricePattern) &&
+          !skipWords.test(nameLine) &&
+          !paymentMethods.test(nameLine) &&
+          nameLine.length >= 2
+        ) {
+          const price = parseFloat(twoMatch[1]);
           if (price <= 0 || price > 9999) continue;
-          // Negative prices = discounts/returns, skip
-          if (line.includes("-$") || line.match(/-\s*\d+\.\d{2}/)) continue;
-          // Get item name - remove price, qty patterns, dashes
-          let itemName = line
-            .replace(pricePattern, "")
-            .replace(/^\d+\s+x?\s*/i, "")
-            .replace(/x\s*\d+/i, "")
-            .replace(/[-*]+/g, "")
-            .replace(/\s+/g, " ")
-            .trim();
+          const itemName = nameLine.replace(/[-*]+/g, "").replace(/\s+/g, " ").trim();
           if (itemName.length < 2) continue;
-          // Skip if item name looks like a payment method after cleaning
-          if (paymentMethods.test(itemName)) continue;
-          // Deduplicate exact same item+price combos (OCR sometimes double-reads)
           const dedupeKey = `${itemName.toLowerCase()}_${price}`;
-          if (seenItems.has(dedupeKey)) continue;
+          if (seenItems.has(dedupeKey)) { i++; continue; }
           seenItems.add(dedupeKey);
+          let category = "misc";
+          const lower = itemName.toLowerCase();
+          if (/rice|noodle|chicken|fish|beef|pork|veg|meal|food|mee|laksa|roti|bread|toast|egg|curry|soup|burger|pizza|pasta|sushi|bento|set|lunch|dinner|breakfast|snack|cake|dessert|ice cream|waffle|salad|sandwich|powder|paste|sauce|seasoning/i.test(lower)) category = "food";
+          else if (/tea|coffee|kopi|teh|milo|juice|drink|water|beer|wine|coke|pepsi|sprite|soda|smoothie|latte|cappuccino|americano|pokka|100plus|isotonic/i.test(lower)) category = "food";
+          else if (/milk|eggs|butter|flour|sugar|oil|salt|pepper|grocery|vegetable|fruit|meat|seafood|detergent|dishwash|lemon|cleaning|tissue|toiletries|shampoo|conditioner|washing/i.test(lower)) category = "groceries";
+          else if (/shirt|pants|shoes|clothes|fashion|bag|dress|jacket|accessory|socks|tshirt|jeans|wear/i.test(lower)) category = "shopping";
+          else if (/electricity|water|gas|internet|phone|bill|utilities|singtel|starhub|myrepublic|m1\b/i.test(lower)) category = "bills";
+          extracted.push({ id: Date.now() + extracted.length, item: itemName, price: String(price), category, date: receiptDate, store: storeName, rating: null, note: "" });
+          i++; // Skip the price line
+        }
+      }
+
+      // Strategy 2: Single-line pattern — "Item Name $price" (Kopitiam, Cheers style)
+      // Only run if strategy 1 found nothing
+      if (extracted.length === 0) {
+        for (const line of lines) {
+          if (skipWords.test(line)) continue;
+          if (paymentMethods.test(line.trim())) continue;
+          if (/^\$?\d+\.\d{2}$/.test(line.trim())) continue;
+          const match = line.match(pricePattern);
+          if (match) {
+            const price = parseFloat(match[1]);
+            if (price <= 0 || price > 9999) continue;
+            if (line.includes("-$") || line.match(/-\s*\d+\.\d{2}/)) continue;
+            let itemName = line
+              .replace(pricePattern, "")
+              .replace(/^\d+\s+x?\s*/i, "")
+              .replace(/x\s*\d+/i, "")
+              .replace(/[-*]+/g, "")
+              .replace(/\s+/g, " ")
+              .trim();
+            if (itemName.length < 2) continue;
+            if (paymentMethods.test(itemName)) continue;
+            const dedupeKey = `${itemName.toLowerCase()}_${price}`;
+            if (seenItems.has(dedupeKey)) continue;
+            seenItems.add(dedupeKey);
 
           // Guess category
           let category = "misc";
           const lower = itemName.toLowerCase();
-          if (/rice|noodle|chicken|fish|beef|pork|veg|meal|food|mee|laksa|roti|bread|toast|egg|curry|soup|burger|pizza|pasta|sushi|bento|set|lunch|dinner|breakfast|snack|cake|dessert|ice cream|waffle|salad|sandwich/i.test(lower)) category = "food";
-          else if (/tea|coffee|kopi|teh|milo|juice|drink|water|beer|wine|coke|pepsi|sprite|soda|smoothie|latte|cappuccino|americano/i.test(lower)) category = "food";
+          if (/rice|noodle|chicken|fish|beef|pork|veg|meal|food|mee|laksa|roti|bread|toast|egg|curry|soup|burger|pizza|pasta|sushi|bento|set|lunch|dinner|breakfast|snack|cake|dessert|ice cream|waffle|salad|sandwich|powder|paste|sauce|seasoning/i.test(lower)) category = "food";
+          else if (/tea|coffee|kopi|teh|milo|juice|drink|water|beer|wine|coke|pepsi|sprite|soda|smoothie|latte|cappuccino|americano|pokka|100plus|isotonic/i.test(lower)) category = "food";
           else if (/train|mrt|bus|grab|taxi|uber|transport|fare|toll|transit/i.test(lower)) category = "transport";
           else if (/movie|cinema|concert|show|ticket|netflix|spotify|game|entertainment/i.test(lower)) category = "entertainment";
-          else if (/medicine|pharmacy|clinic|hospital|doctor|health|vitamin|supplement/i.test(lower)) category = "health";
-          else if (/shirt|pants|shoes|clothes|fashion|bag|dress|jacket|accessory/i.test(lower)) category = "shopping";
-          else if (/milk|eggs|bread|butter|flour|sugar|oil|salt|pepper|grocery|vegetable|fruit|meat|seafood/i.test(lower)) category = "groceries";
-          else if (/electricity|water|gas|internet|phone|bill|utilities/i.test(lower)) category = "bills";
+          else if (/medicine|pharmacy|clinic|hospital|doctor|health|vitamin|supplement|panadol|paracetamol/i.test(lower)) category = "health";
+          else if (/shirt|pants|shoes|clothes|fashion|bag|dress|jacket|accessory|socks|tshirt|jeans/i.test(lower)) category = "shopping";
+          else if (/milk|eggs|butter|flour|sugar|oil|salt|pepper|grocery|vegetable|fruit|meat|seafood|detergent|dishwash|tissue|toiletries|shampoo|washing/i.test(lower)) category = "groceries";
+          else if (/electricity|water|gas|internet|phone|bill|utilities|singtel|starhub/i.test(lower)) category = "bills";
           else if (/bar|club|pub|cocktail|beer|party/i.test(lower)) category = "going-out";
 
-          extracted.push({
-            id: Date.now() + extracted.length,
-            item: itemName,
-            price: String(price),
-            category,
-            date: receiptDate,
-            store: storeName,
-            rating: null,
-            note: ""
-          });
+          extracted.push({ id: Date.now() + extracted.length, item: itemName, price: String(price), category, date: receiptDate, store: storeName, rating: null, note: "" });
+          }
         }
-      }
+      } // end strategy 2
 
       if (extracted.length === 0) {
         // Fallback: couldn't parse items, give user a blank editable row
