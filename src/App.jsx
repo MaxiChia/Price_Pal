@@ -503,11 +503,12 @@ const styles = `
   .form-input { width: 100%; background: white; border: 1.5px solid var(--border2); border-radius: 12px; padding: 13px 14px; font-family: "Plus Jakarta Sans",sans-serif; font-size: 15px; color: var(--text); outline: none; transition: border-color 0.2s; font-weight: 500; }
   .form-input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(124,107,174,0.1); }
 
-  .category-scroll { display: flex; gap: 8px; overflow-x: auto; padding: 4px 16px 8px; margin-bottom: 14px; -webkit-overflow-scrolling: touch; scroll-snap-type: x mandatory; cursor: grab; }
+  .category-scroll { display: flex; gap: 8px; overflow-x: auto; padding: 4px 16px 10px; margin-bottom: 14px; -webkit-overflow-scrolling: touch; scroll-snap-type: x mandatory; cursor: grab; }
   .category-scroll:active { cursor: grabbing; }
-  .category-scroll::-webkit-scrollbar { height: 3px; }
-  .category-scroll::-webkit-scrollbar-track { background: transparent; }
+  .category-scroll::-webkit-scrollbar { height: 6px; }
+  .category-scroll::-webkit-scrollbar-track { background: var(--bg2); border-radius: 4px; margin: 0 16px; }
   .category-scroll::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 4px; }
+  .category-scroll::-webkit-scrollbar-thumb:hover { background: var(--primary); }
   .cat-chip { display: flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 20px; border: 1.5px solid transparent; background: white; cursor: pointer; white-space: nowrap; font-size: 13px; font-weight: 700; color: var(--text2); transition: all 0.2s; flex-shrink: 0; box-shadow: var(--shadow); }
   .cat-chip.selected { border-color: currentColor; background: var(--bg2); }
 
@@ -1283,13 +1284,63 @@ export default function PricePal() {
   async function handleReceiptImage(e) {
     const file = e.target.files[0];
     if (!file) return;
-    const previewUrl = URL.createObjectURL(file);
-    setScanPreviewUrl(previewUrl);
     setScanLoading(true);
     setScanError(null);
     setScanReview(false);
 
     try {
+      let ocrBlob = file;
+
+      // If PDF — convert first page to image using PDF.js
+      if (file.type === "application/pdf") {
+        setScanPreviewUrl(null);
+        if (!window.pdfjsLib) {
+          await new Promise((resolve, reject) => {
+            const script = document.createElement("script");
+            script.src = "https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js";
+            script.onload = resolve;
+            script.onerror = reject;
+            document.head.appendChild(script);
+          });
+          window.pdfjsLib.GlobalWorkerOptions.workerSrc =
+            "https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js";
+        }
+        const arrayBuffer = await file.arrayBuffer();
+        const pdf = await window.pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+        // Render all pages and stitch vertically
+        const canvases = [];
+        let totalHeight = 0, maxWidth = 0;
+        for (let p = 1; p <= pdf.numPages; p++) {
+          const page = await pdf.getPage(p);
+          const viewport = page.getViewport({ scale: 2.5 });
+          const canvas = document.createElement("canvas");
+          canvas.width = viewport.width;
+          canvas.height = viewport.height;
+          await page.render({ canvasContext: canvas.getContext("2d"), viewport }).promise;
+          canvases.push(canvas);
+          totalHeight += viewport.height;
+          maxWidth = Math.max(maxWidth, viewport.width);
+        }
+        // Stitch pages
+        const stitched = document.createElement("canvas");
+        stitched.width = maxWidth;
+        stitched.height = totalHeight;
+        const ctx = stitched.getContext("2d");
+        ctx.fillStyle = "white";
+        ctx.fillRect(0, 0, maxWidth, totalHeight);
+        let offsetY = 0;
+        for (const cv of canvases) {
+          ctx.drawImage(cv, 0, offsetY);
+          offsetY += cv.height;
+        }
+        const dataUrl = stitched.toDataURL("image/png");
+        setScanPreviewUrl(dataUrl);
+        // Convert to blob for Tesseract
+        ocrBlob = await new Promise(res => stitched.toBlob(res, "image/png"));
+      } else {
+        const previewUrl = URL.createObjectURL(file);
+        setScanPreviewUrl(previewUrl);
+      }
       // Load Tesseract from CDN dynamically
       if (!window.Tesseract) {
         await new Promise((resolve, reject) => {
@@ -1301,7 +1352,7 @@ export default function PricePal() {
         });
       }
 
-      const { data: { text } } = await window.Tesseract.recognize(file, "eng", {
+      const { data: { text } } = await window.Tesseract.recognize(ocrBlob, "eng", {
         logger: () => {}
       });
 
@@ -2120,7 +2171,7 @@ export default function PricePal() {
               <div style={{ padding: "0 16px" }}>
                 {/* hidden file inputs */}
                 <input ref={cameraRef} type="file" accept="image/*" capture="environment" style={{ display: "none" }} onChange={handleReceiptImage} />
-                <input ref={uploadRef} type="file" accept="image/*" style={{ display: "none" }} onChange={handleReceiptImage} />
+                <input ref={uploadRef} type="file" accept="image/*,application/pdf" style={{ display: "none" }} onChange={handleReceiptImage} />
 
                 <div style={{ background: "var(--bg2)", border: "1.5px dashed var(--border2)", borderRadius: 18, padding: "32px 20px", textAlign: "center", marginBottom: 16 }}>
                   <div style={{ fontSize: 40, marginBottom: 12 }}>🧾</div>
@@ -2274,30 +2325,126 @@ export default function PricePal() {
                   />
                 </div>
 
-                {logForm.category === "food" && (
-                  <>
-                    <div className="section-divider" />
-                    <div style={{ padding: "0 16px", marginBottom: 14 }}>
-                      <div style={{ fontSize: 12, color: "var(--text3)", fontWeight: 700, marginBottom: 12 }}>Food Details <span style={{ fontWeight: 500 }}>(optional)</span></div>
-                      <div className="form-field" style={{ margin: "0 0 14px" }}>
-                        <label className="form-label">Store or Place</label>
-                        <input className="form-input" placeholder="e.g. Tian Tian Chicken Rice" value={logForm.store} onChange={e => setLogForm(p => ({ ...p, store: e.target.value }))} />
+                {/* Category-specific optional fields */}
+                {(() => {
+                  const cat = logForm.category;
+                  const configs = {
+                    food: {
+                      title: "Food Details",
+                      fields: [
+                        { label: "Stall or Restaurant", key: "store", placeholder: "e.g. Tian Tian Chicken Rice" },
+                        { label: "Quick Note", key: "note", placeholder: "e.g. Portion smaller than usual" },
+                      ],
+                      rating: true,
+                    },
+                    groceries: {
+                      title: "Grocery Details",
+                      fields: [
+                        { label: "Supermarket", key: "store", placeholder: "e.g. NTUC FairPrice, Cold Storage" },
+                        { label: "Quick Note", key: "note", placeholder: "e.g. On promotion, price may change" },
+                      ],
+                      rating: false,
+                    },
+                    transport: {
+                      title: "Transport Details",
+                      fields: [
+                        { label: "Mode of Transport", key: "store", placeholder: "e.g. MRT, Bus, Grab, Taxi" },
+                        { label: "Route or Trip", key: "note", placeholder: "e.g. Tampines to Orchard" },
+                      ],
+                      rating: false,
+                    },
+                    entertainment: {
+                      title: "Entertainment Details",
+                      fields: [
+                        { label: "What Entertainment?", key: "store", placeholder: "e.g. Netflix, Cinema, Concert" },
+                        { label: "Title or Event", key: "note", placeholder: "e.g. Mission Impossible 8, Taylor Swift" },
+                      ],
+                      rating: true,
+                    },
+                    travel: {
+                      title: "Travel Details",
+                      fields: [
+                        { label: "Destination", key: "store", placeholder: "e.g. Bali, Bangkok, JB" },
+                        { label: "What for?", key: "note", placeholder: "e.g. Flights, Hotel, Day trip" },
+                      ],
+                      rating: false,
+                    },
+                    health: {
+                      title: "Health Details",
+                      fields: [
+                        { label: "Clinic or Pharmacy", key: "store", placeholder: "e.g. Watsons, Polyclinic, Guardian" },
+                        { label: "What for?", key: "note", placeholder: "e.g. MC visit, vitamins, medication" },
+                      ],
+                      rating: false,
+                    },
+                    shopping: {
+                      title: "Shopping Details",
+                      fields: [
+                        { label: "Shop or Platform", key: "store", placeholder: "e.g. Uniqlo, Shopee, Lazada" },
+                        { label: "Quick Note", key: "note", placeholder: "e.g. Sale item, price before discount" },
+                      ],
+                      rating: false,
+                    },
+                    "going-out": {
+                      title: "Going Out Details",
+                      fields: [
+                        { label: "Venue", key: "store", placeholder: "e.g. Zouk, Timbre, The Alkaff Mansion" },
+                        { label: "What was it?", key: "note", placeholder: "e.g. Birthday dinner, drinks with friends" },
+                      ],
+                      rating: true,
+                    },
+                    education: {
+                      title: "Education Details",
+                      fields: [
+                        { label: "Provider or Platform", key: "store", placeholder: "e.g. Coursera, SMU bookshop, Udemy" },
+                        { label: "Course or Item", key: "note", placeholder: "e.g. Python bootcamp, Accounting textbook" },
+                      ],
+                      rating: false,
+                    },
+                    bills: {
+                      title: "Bill Details",
+                      fields: [
+                        { label: "Bill Type", key: "store", placeholder: "e.g. Singtel, SP Group, Starhub" },
+                        { label: "For which month?", key: "note", placeholder: "e.g. June electricity, mobile plan" },
+                      ],
+                      rating: false,
+                    },
+                    misc: {
+                      title: "Details",
+                      fields: [
+                        { label: "Where?", key: "store", placeholder: "e.g. Shop name or platform" },
+                        { label: "Quick Note", key: "note", placeholder: "Any extra detail..." },
+                      ],
+                      rating: false,
+                    },
+                  };
+                  const cfg = configs[cat];
+                  if (!cfg) return null;
+                  return (
+                    <>
+                      <div className="section-divider" />
+                      <div style={{ padding: "0 16px", marginBottom: 14 }}>
+                        <div style={{ fontSize: 12, color: "var(--text3)", fontWeight: 700, marginBottom: 12 }}>{cfg.title} <span style={{ fontWeight: 500 }}>(optional)</span></div>
+                        {cfg.fields.map(f => (
+                          <div className="form-field" style={{ margin: "0 0 14px" }} key={f.key + f.label}>
+                            <label className="form-label">{f.label}</label>
+                            <input className="form-input" placeholder={f.placeholder} value={logForm[f.key] || ""} onChange={e => setLogForm(p => ({ ...p, [f.key]: e.target.value }))} />
+                          </div>
+                        ))}
+                        {cfg.rating && (
+                          <div style={{ marginBottom: 14 }}>
+                            <label className="form-label" style={{ display: "block", marginBottom: 8 }}>Value Rating</label>
+                            <div className="rating-row">
+                              {[1,2,3,4,5,6,7,8,9,10].map(n => (
+                                <button key={n} className={`rating-btn ${logForm.rating === n ? "selected" : ""}`} onClick={() => setLogForm(p => ({ ...p, rating: n }))}>{n}</button>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                       </div>
-                      <div style={{ marginBottom: 14 }}>
-                        <label className="form-label" style={{ display: "block", marginBottom: 8 }}>Value Rating</label>
-                        <div className="rating-row">
-                          {[1,2,3,4,5,6,7,8,9,10].map(n => (
-                            <button key={n} className={`rating-btn ${logForm.rating === n ? "selected" : ""}`} onClick={() => setLogForm(p => ({ ...p, rating: n }))}>{n}</button>
-                          ))}
-                        </div>
-                      </div>
-                      <div>
-                        <label className="form-label">Quick Note</label>
-                        <input className="form-input" placeholder="One line about this meal..." maxLength={80} value={logForm.note} onChange={e => setLogForm(p => ({ ...p, note: e.target.value }))} />
-                      </div>
-                    </div>
-                  </>
-                )}
+                    </>
+                  );
+                })()}
 
                 <div style={{ padding: "4px 16px 20px" }}>
                   <button className="btn-primary" onClick={handleLogSave}>Save Log</button>
