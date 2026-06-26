@@ -3139,14 +3139,14 @@ export default function PricePal() {
 
         {/* ── BOTTOM NAV ── */}
         <div className="bottom-nav">
-          <button className={`nav-item ${tab === "home" ? "active" : ""}`} onClick={() => setTab("home")}>
+          <button className={`nav-item ${tab === "home" ? "active" : ""}`} onClick={() => { setTab("home"); window.scrollTo({ top: 0, behavior: "smooth" }); }}>
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
               <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
             </svg>
             <span className="nav-label">Home</span>
           </button>
 
-          <button className={`nav-item ${tab === "portfolio" ? "active" : ""}`} onClick={() => setTab("portfolio")}>
+          <button className={`nav-item ${tab === "portfolio" ? "active" : ""}`} onClick={() => { setTab("portfolio"); window.scrollTo({ top: 0, behavior: "smooth" }); }}>
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
               <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
             </svg>
@@ -3159,14 +3159,14 @@ export default function PricePal() {
             </svg>
           </div>
 
-          <button className={`nav-item ${tab === "digest" ? "active" : ""}`} onClick={() => setTab("digest")}>
+          <button className={`nav-item ${tab === "digest" ? "active" : ""}`} onClick={() => { setTab("digest"); window.scrollTo({ top: 0, behavior: "smooth" }); }}>
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
               <path d="M4 22h16a2 2 0 002-2V4a2 2 0 00-2-2H8L4 6v14a2 2 0 002 2z"/><line x1="8" y1="10" x2="16" y2="10"/><line x1="8" y1="14" x2="14" y2="14"/>
             </svg>
             <span className="nav-label">Digest</span>
           </button>
 
-          <button className={`nav-item ${tab === "learn" ? "active" : ""}`} onClick={() => setTab("learn")}>
+          <button className={`nav-item ${tab === "learn" ? "active" : ""}`} onClick={() => { setTab("learn"); window.scrollTo({ top: 0, behavior: "smooth" }); }}>
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
               <path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/>
             </svg>
