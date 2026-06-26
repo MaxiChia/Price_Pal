@@ -933,6 +933,7 @@ export default function PricePal() {
   const [scanReview, setScanReview] = useState(false);
   const [scanItems, setScanItems] = useState([]);
   const [scanPreviewUrl, setScanPreviewUrl] = useState(null);
+  const [previewExpanded, setPreviewExpanded] = useState(false);
   const [scanError, setScanError] = useState(null);
   const [expandedCat, setExpandedCat] = useState(null);
   const [editingLog, setEditingLog] = useState(null); // the log being edited
@@ -1327,6 +1328,7 @@ export default function PricePal() {
     setScanLoading(true);
     setScanError(null);
     setScanReview(false);
+    setPreviewExpanded(false);
 
     try {
       let ocrBlob = file;
@@ -2337,8 +2339,13 @@ export default function PricePal() {
             {logMode === "scan" && scanReview && (
               <div style={{ padding: "0 16px" }}>
                 {scanPreviewUrl && (
-                  <div style={{ marginBottom: 14, borderRadius: 14, overflow: "hidden", border: "1.5px solid var(--border)" }}>
-                    <img src={scanPreviewUrl} alt="Receipt" style={{ width: "100%", maxHeight: 180, objectFit: "cover" }} />
+                  <div style={{ marginBottom: 14 }}>
+                    <div style={{ borderRadius: 14, overflow: "hidden", border: "1.5px solid var(--border)", position: "relative", cursor: "pointer" }} onClick={() => setPreviewExpanded(e => !e)}>
+                      <img src={scanPreviewUrl} alt="Receipt" style={{ width: "100%", maxHeight: previewExpanded ? "none" : 180, objectFit: previewExpanded ? "contain" : "cover", display: "block" }} />
+                      <div style={{ position: "absolute", bottom: 8, right: 8, background: "rgba(0,0,0,0.55)", color: "white", fontSize: 11, fontWeight: 700, borderRadius: 8, padding: "4px 10px" }}>
+                        {previewExpanded ? "▲ Collapse" : "▼ View full receipt"}
+                      </div>
+                    </div>
                   </div>
                 )}
                 <div style={{ background: "var(--green-bg)", border: "1.5px solid var(--green-mid)", borderRadius: 14, padding: "12px 14px", marginBottom: 16, display: "flex", alignItems: "center", gap: 8 }}>
