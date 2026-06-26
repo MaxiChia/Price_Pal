@@ -2237,7 +2237,13 @@ export default function PricePal() {
             <div style={{ padding: "0 20px 16px" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
                 <div style={{ fontSize: 11, color: "var(--text3)", fontWeight: 800, letterSpacing: "0.6px" }}>RECENT LOGS</div>
-                <div style={{ fontSize: 11, color: "var(--primary)", fontWeight: 700 }}>{thisMonthLogs.length} this month</div>
+                <div style={{ fontSize: 11, color: "var(--primary)", fontWeight: 700 }}>
+                  {thisMonthLogs.length > 0
+                    ? `${thisMonthLogs.length} in ${MONTH_NAMES[today.getMonth()]}`
+                    : logs.length > 0
+                    ? `${logs.length} total`
+                    : ""}
+                </div>
               </div>
               {logs.length === 0 ? (
                 <div style={{ textAlign: "center", padding: "24px 0", color: "var(--text3)" }}>
@@ -2253,7 +2259,7 @@ export default function PricePal() {
                         <div style={{ width: 32, height: 32, borderRadius: 9, background: `${cat?.color}22`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15 }}>{cat?.icon}</div>
                         <div>
                           <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text)" }}>{log.item}</div>
-                          <div style={{ fontSize: 11, color: "var(--text3)" }}>{log.date}</div>
+                          <div style={{ fontSize: 11, color: "var(--text3)" }}>{log.date ? `${log.date.slice(8,10)}/${log.date.slice(5,7)}/${log.date.slice(0,4)}` : ""}</div>
                         </div>
                       </div>
                       <div style={{ fontSize: 15, fontWeight: 800, color: "var(--text)" }}>${log.price.toFixed(2)}</div>
