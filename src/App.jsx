@@ -1696,7 +1696,7 @@ export default function PricePal() {
               </div>
 
               {/* Stat pills */}
-              <div style={{ display: "flex", gap: 8, width: "100%", marginBottom: 20 }}>
+              <div style={{ display: "flex", gap: 8, width: "100%", marginBottom: 6 }}>
                 {[
                   { num: "+8.2%", lbl: "avg food inflation" },
                   { num: "$340", lbl: "avg overspend/mo" },
@@ -1708,9 +1708,11 @@ export default function PricePal() {
                   </div>
                 ))}
               </div>
+              <div style={{ fontSize: 10, color: "var(--text3)", textAlign: "right", width: "100%", marginBottom: 16, paddingRight: 2 }}>SG market estimates</div>
 
               {/* Mini receipt preview */}
               <div style={{ background: "white", borderRadius: 16, border: "1.5px solid #E0D9F5", padding: "14px 16px", width: "100%", marginBottom: 24, boxShadow: "0 2px 12px rgba(124,107,174,0.08)" }}>
+                <div style={{ fontSize: 10, color: "var(--text3)", marginBottom: 8, letterSpacing: "0.04em" }}>SAMPLE — what Price Pal tracks for you</div>
                 {[
                   { icon: "🍜", name: "Chicken rice", from: "$3.50", to: "$4.50" },
                   { icon: "☕", name: "Kopi O", from: "$1.20", to: "$1.60" },
