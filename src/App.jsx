@@ -1029,6 +1029,12 @@ export default function PricePal() {
   async function saveProfile(updates) {
     if (!user) return;
     await supabase.from("profiles").upsert({ id: user.id, ...updates });
+    // Sync local state immediately so companion mood + budget bar update without refresh
+    if (updates.budget !== undefined) setBudget(String(updates.budget));
+    if (updates.companion !== undefined) setSelectedCompanion(updates.companion);
+    if (updates.companion_name !== undefined) setCompanionCustom(p => ({ ...p, name: updates.companion_name || "" }));
+    if (updates.companion_color !== undefined) setCompanionCustom(p => ({ ...p, color: updates.companion_color || "" }));
+    if (updates.companion_note !== undefined) setCompanionCustom(p => ({ ...p, note: updates.companion_note || "" }));
   }
 
   // ── SAVE LOG TO SUPABASE ──
@@ -1881,6 +1887,24 @@ export default function PricePal() {
               <div className="profile-stat">
                 <div className="profile-stat-val">{logs.length}</div>
                 <div className="profile-stat-label">Total Purchases Logged (All Time)</div>
+              </div>
+              <div className="profile-row">
+                <span className="profile-row-label">Monthly Budget</span>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <span style={{ color: "var(--text3)", fontSize: 14 }}>$</span>
+                  <input
+                    type="number"
+                    value={budget}
+                    onChange={e => setBudget(e.target.value)}
+                    onBlur={async () => {
+                      const val = parseFloat(budget);
+                      if (!isNaN(val) && val > 0) {
+                        await saveProfile({ budget: val });
+                      }
+                    }}
+                    style={{ width: 90, border: "1.5px solid var(--border2)", borderRadius: 10, padding: "6px 10px", fontSize: 14, fontWeight: 700, color: "var(--primary)", background: "var(--bg2)", textAlign: "right" }}
+                  />
+                </div>
               </div>
               <div className="profile-row">
                 <span className="profile-row-label">This Month</span>
