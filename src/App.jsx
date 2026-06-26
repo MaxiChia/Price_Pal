@@ -935,6 +935,8 @@ export default function PricePal() {
   const [scanPreviewUrl, setScanPreviewUrl] = useState(null);
   const [scanError, setScanError] = useState(null);
   const [expandedCat, setExpandedCat] = useState(null);
+  const [editingLog, setEditingLog] = useState(null); // the log being edited
+  const [editForm, setEditForm] = useState({});
   const [authLoading, setAuthLoading] = useState(false);
   const [authError, setAuthError] = useState("");
   const [user, setUser] = useState(null);
@@ -2409,21 +2411,23 @@ export default function PricePal() {
                     className="form-input"
                     type="text"
                     placeholder={`${String(new Date().getDate()).padStart(2,"0")}/${String(new Date().getMonth()+1).padStart(2,"0")}/${new Date().getFullYear()}`}
-                    value={logForm.date ? `${logForm.date.slice(8,10)}/${logForm.date.slice(5,7)}/${logForm.date.slice(0,4)}` : ""}
+                    value={logForm._dateDisplay !== undefined ? logForm._dateDisplay : (logForm.date ? `${logForm.date.slice(8,10)}/${logForm.date.slice(5,7)}/${logForm.date.slice(0,4)}` : "")}
                     onChange={e => {
-                      const val = e.target.value.replace(/[^\d/]/g, "");
-                      // Auto-insert slashes
-                      let formatted = val;
-                      if (val.length === 2 && !val.includes("/")) formatted = val + "/";
-                      if (val.length === 5 && val.split("/").length === 2) formatted = val + "/";
-                      // Parse to ISO when complete DD/MM/YYYY
-                      const parts = formatted.split("/");
-                      if (parts.length === 3 && parts[2].length === 4) {
-                        const iso = `${parts[2]}-${parts[1].padStart(2,"0")}-${parts[0].padStart(2,"0")}`;
-                        if (!isNaN(new Date(iso))) { setLogForm(p => ({ ...p, date: iso })); return; }
+                      let val = e.target.value.replace(/[^\d/]/g, "");
+                      // Auto-insert slashes at position 2 and 5
+                      if (/^\d{2}$/.test(val)) val = val + "/";
+                      else if (/^\d{2}\/\d{2}$/.test(val)) val = val + "/";
+                      // Try parse full date
+                      const parts = val.split("/");
+                      if (parts.length === 3 && parts[0].length === 2 && parts[1].length === 2 && parts[2].length === 4) {
+                        const iso = `${parts[2]}-${parts[1]}-${parts[0]}`;
+                        const d = new Date(iso);
+                        if (!isNaN(d)) {
+                          setLogForm(p => ({ ...p, date: iso, _dateDisplay: val }));
+                          return;
+                        }
                       }
-                      // Store raw text temporarily as a display hint
-                      if (formatted.length <= 10) setLogForm(p => ({ ...p, date: formatted.length < 10 ? "" : p.date }));
+                      setLogForm(p => ({ ...p, _dateDisplay: val, date: parts.length === 3 && parts[2].length === 4 ? p.date : "" }));
                     }}
                     maxLength={10}
                   />
@@ -2670,11 +2674,17 @@ export default function PricePal() {
                           <div style={{ fontSize: 13, color: "var(--text3)", textAlign: "center", padding: "8px 0" }}>No items logged.</div>
                         ) : catLogs.map((log, idx) => (
                           <div key={log.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: idx < catLogs.length - 1 ? "1px solid var(--border)" : "none" }}>
-                            <div style={{ minWidth: 0 }}>
+                            <div style={{ minWidth: 0, flex: 1 }}>
                               <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{log.item}</div>
                               <div style={{ fontSize: 11, color: "var(--text3)", marginTop: 2 }}>{log.store ? `${log.store} · ` : ""}{log.date}</div>
                             </div>
-                            <div style={{ fontSize: 14, fontWeight: 800, color: "var(--primary)", flexShrink: 0, marginLeft: 12 }}>${parseFloat(log.price).toFixed(2)}</div>
+                            <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0, marginLeft: 8 }}>
+                              <div style={{ fontSize: 14, fontWeight: 800, color: "var(--primary)" }}>${parseFloat(log.price).toFixed(2)}</div>
+                              <button onClick={() => { setEditingLog(log); setEditForm({ ...log, _dateDisplay: log.date ? `${log.date.slice(8,10)}/${log.date.slice(5,7)}/${log.date.slice(0,4)}` : "" }); }}
+                                style={{ fontSize: 11, color: "var(--primary)", background: "var(--bg2)", border: "1px solid var(--border2)", borderRadius: 8, padding: "3px 8px", cursor: "pointer", fontWeight: 600 }}>
+                                Edit
+                              </button>
+                            </div>
                           </div>
                         ))}
                       </div>
@@ -2748,6 +2758,89 @@ export default function PricePal() {
                   <span style={{ fontSize: 11, color: "var(--text3)" }}>{t.dates[0]} → {t.dates[t.dates.length - 1]}</span>
                 </div>
               ))}
+            </div>
+          </div>
+        )}
+
+        {/* ── EDIT LOG MODAL ── */}
+        {editingLog && (
+          <div className="modal-overlay" onClick={() => setEditingLog(null)}>
+            <div className="modal-sheet" onClick={e => e.stopPropagation()} style={{ maxHeight: "85vh", overflowY: "auto" }}>
+              <div className="modal-handle" />
+              <div className="modal-title">Edit Purchase</div>
+
+              <div className="form-field" style={{ margin: "0 0 14px" }}>
+                <label className="form-label">Item Name</label>
+                <input className="form-input" value={editForm.item || ""} onChange={e => setEditForm(p => ({ ...p, item: e.target.value }))} />
+              </div>
+
+              <div className="form-field" style={{ margin: "0 0 14px" }}>
+                <label className="form-label">Price ($)</label>
+                <input className="form-input" type="number" value={editForm.price || ""} onChange={e => setEditForm(p => ({ ...p, price: e.target.value }))} />
+              </div>
+
+              <div className="form-field" style={{ margin: "0 0 14px" }}>
+                <label className="form-label">Date <span style={{ fontSize: 11, color: "var(--text3)", fontWeight: 400 }}>(DD/MM/YYYY)</span></label>
+                <input
+                  className="form-input"
+                  type="text"
+                  placeholder="DD/MM/YYYY"
+                  value={editForm._dateDisplay || ""}
+                  onChange={e => {
+                    let val = e.target.value.replace(/[^\d/]/g, "");
+                    if (/^\d{2}$/.test(val)) val = val + "/";
+                    else if (/^\d{2}\/\d{2}$/.test(val)) val = val + "/";
+                    const parts = val.split("/");
+                    if (parts.length === 3 && parts[0].length === 2 && parts[1].length === 2 && parts[2].length === 4) {
+                      const iso = `${parts[2]}-${parts[1]}-${parts[0]}`;
+                      if (!isNaN(new Date(iso))) { setEditForm(p => ({ ...p, date: iso, _dateDisplay: val })); return; }
+                    }
+                    setEditForm(p => ({ ...p, _dateDisplay: val }));
+                  }}
+                  maxLength={10}
+                />
+              </div>
+
+              <div style={{ margin: "0 0 14px" }}>
+                <label className="form-label" style={{ display: "block", marginBottom: 8 }}>Category</label>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                  {CATEGORIES.map(cat => (
+                    <div key={cat.id} className={`cat-chip ${editForm.category === cat.id ? "selected" : ""}`}
+                      style={{ color: cat.color }}
+                      onClick={() => setEditForm(p => ({ ...p, category: cat.id }))}>
+                      <span>{cat.icon}</span> {cat.label}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="form-field" style={{ margin: "0 0 14px" }}>
+                <label className="form-label">Store / Place</label>
+                <input className="form-input" placeholder="e.g. NTUC FairPrice" value={editForm.store || ""} onChange={e => setEditForm(p => ({ ...p, store: e.target.value }))} />
+              </div>
+
+              <div className="form-field" style={{ margin: "0 0 20px" }}>
+                <label className="form-label">Note</label>
+                <input className="form-input" placeholder="Any extra detail..." value={editForm.note || ""} onChange={e => setEditForm(p => ({ ...p, note: e.target.value }))} />
+              </div>
+
+              <button className="btn-primary" onClick={async () => {
+                const updated = { ...editingLog, ...editForm, price: parseFloat(editForm.price) || editingLog.price };
+                delete updated._dateDisplay;
+                // Update Supabase
+                await supabase.from("logs").update({ item: updated.item, category: updated.category, price: updated.price, date: updated.date, store: updated.store, note: updated.note }).eq("id", updated.id);
+                setLogs(prev => prev.map(l => l.id === updated.id ? updated : l));
+                setEditingLog(null);
+              }}>Save Changes</button>
+
+              <button onClick={async () => {
+                if (!window.confirm("Delete this purchase?")) return;
+                await supabase.from("logs").delete().eq("id", editingLog.id);
+                setLogs(prev => prev.filter(l => l.id !== editingLog.id));
+                setEditingLog(null);
+              }} style={{ width: "100%", marginTop: 10, background: "none", border: "1px solid #E8A0A0", color: "#C05050", borderRadius: 14, padding: "13px", fontSize: 14, fontWeight: 600, cursor: "pointer" }}>
+                Delete Purchase
+              </button>
             </div>
           </div>
         )}
