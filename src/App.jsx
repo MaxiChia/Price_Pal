@@ -1921,12 +1921,6 @@ export default function PricePal() {
                   <span className="profile-row-val">{companionCustom.name || companion?.name || "—"}</span>
                 </span>
               </div>
-              <div className="profile-row">
-                <span className="profile-row-label">Monthly Budget</span>
-                <span className="profile-row-val">${budgetNum.toFixed(0)}</span>
-              </div>
-
-
               {/* EXPORT SECTION */}
               <div style={{ margin: "20px 20px 0", padding: "16px", background: "var(--bg2)", borderRadius: 14, border: "1.5px solid var(--border)" }}>
                 <div style={{ fontSize: 11, fontWeight: 800, color: "var(--text3)", letterSpacing: "0.6px", marginBottom: 12 }}>EXPORT DATA</div>
